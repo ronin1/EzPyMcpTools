@@ -65,6 +65,7 @@ By choosing **Ollama**, we assume you know what you're doing:
 - Being a standard MCP server, it __should__ be compatible with all agents & models (including comercial ones).
 - Currently, this MCP server is being built for local run via `stdio` transport.  
 - You can start it with `http` or `sse` transport by running: `uv run python mcp_server.py --transport http`
+- *WARNING:* This MCP server has no authentication built in currently. Please do not run in `http` or `sse` protocol & expose it to the open web. You *will* get hacked.
 
 ## Writing a new Tool
 
