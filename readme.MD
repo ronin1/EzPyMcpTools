@@ -52,7 +52,7 @@ After pulling this project from GitHub:
 By choosing **Ollama**, we assume you know what you're doing:
 
 - Install [Ollama](https://ollama.com)
-- Pull the desired Ollama model
+- Pull the desired Ollama model `ollama pull '{pulled_model_name}'`
 - Start it in the background: `ollama serve`
 - Install [McpHost](https://github.com/mark3labs/mcphost) (Golang project)
 - Generate the default **McpHost** config by running `make mcp_config > .mcphost.json`
