@@ -46,8 +46,27 @@ This is as simple as:
 ### To test individual tool
 
 ```sh
-# print help & all available commands (what the MCP will see too)
 ./tools
+# print help & all available commands (what the MCP will see too)
+Usage: python ./tools <namespace.function> [args...]
+
+Available functions:
+
+  [datetime]
+    datetime.all_timezones(country_code: str = '') -> dict
+      Get all timezones for a country.
+    datetime.configured_timezone() -> dict
+      Get the currently configured timezone.
+    datetime.current(time_zone: str = '') -> dict
+      Get the current date and time.
+
+  [ip_address]
+    ip_address.approximate_physical_location() -> dict
+      Get your current approximate physical location based on your public IP.
+    ip_address.public_ipv4() -> dict
+      Get current user's public IPv4 address, physical location, and ISP name.
+
+# etc...
 
 # test a specific command
 ./tools get_current_datetime
