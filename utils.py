@@ -73,5 +73,15 @@ if __name__ == "__main__":
 
     import json
 
-    result = namespaces[namespace][func_name](*func_args)
+    func = namespaces[namespace][func_name]
+    sig = inspect.signature(func)
+    typed_args = []
+    for arg, param in zip(func_args, sig.parameters.values()):
+        hint = param.annotation
+        if hint in (int, float):
+            typed_args.append(hint(arg))
+        else:
+            typed_args.append(arg)
+
+    result = func(*typed_args)
     print(json.dumps(result, indent=2))
