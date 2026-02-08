@@ -3,6 +3,7 @@
 - An easy way to create a bunch of custom tools for an MCP server.
 - Currently, this project is used as a local MCP server for LmStudio.
 - It allows you to write plain Python scripts & those will show up as proper agent tools (with name space & instructions).
+- This code has not be tested outside of MacOS (it should work ok on Linux, forget Windows).
 
 ## General Setup
 
