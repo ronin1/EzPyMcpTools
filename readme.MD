@@ -1,5 +1,9 @@
 # Easy MCP PyTools
 
+- An easy way to create a bunch of custom tools for an MCP server.
+- Currently, this project is used as a local MCP server for LmStudio.
+- It allows you to write plain Python scripts & those will show up as proper agent tools (with name space & instructions).
+
 ## General Setup
 
 After pulling this project from GitHub:
