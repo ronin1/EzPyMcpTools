@@ -7,7 +7,8 @@
 
 ## But Why?
 
-- Although local OSS Models performance is not as good as hosted Comercial models of today; they are about as good as hosted comercial model of 1-2 years ago.  1-2 years from now, OSS models will be on-par with the best comercial models of today. So will the hardware that you can guy to run these models that sits on your desk.
+- Although local OSS Models performance is not as good as hosted Comercial models of today; they are about as good as hosted comercial model of 1-2 years ago.
+- 1-2 years from now, OSS models will be on-par with the best comercial models of today. So will the hardware that you can guy to run these models that sits on your desk.
 - The one thing that OOS Models get you that comercial models don't are: Complete Privacy & Security. It also costs you nonthing but electricity to run on your own hardware.
 - Comercial models has all the tooling built in. For something as simple as, asking for the current time. An OSS model can't do it without you, giving it the tools to fetch time.
 - This is what this project aims to do: Make tool creation simple to empower OSS models.
