@@ -124,8 +124,8 @@ def ensure_user_info() -> None:
     print(f"\nSaved to {_CONFIG_PATH}")
 
 
-def personal_information() -> dict:
-    """Get current user's personal information."""
+def personal_data() -> dict:
+    """Get current user's personal data."""
     info: dict[str, object] = {
         "name": _get_username(),
         "long_name": _get_full_name(),

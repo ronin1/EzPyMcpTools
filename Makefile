@@ -17,7 +17,7 @@ py_req:
 
 user_info:
 	@uv sync
-	@uv run python -c "from utils.user_data import ensure_user_info; ensure_user_info()"
+	@uv run python -c "from utils.user_information import ensure_user_info; ensure_user_info()"
 
 setup_ollama:
 	@ollama pull $(OLLAMA_MODEL)
