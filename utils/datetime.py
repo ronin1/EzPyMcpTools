@@ -111,8 +111,9 @@ def configured_timezone() -> dict:
     }
 
 
-def all_timezones(country_code: str = "") -> dict:
-    """Get all timezones for a country.
+def country_timezones(country_code: str = "") -> dict:
+    """Get all timezones for a country using ISO 3166 country code (2 chars).
+    If blank, current system's locale is used to detect the country code.
 
     Args:
         country_code: ISO 3166 country code (e.g. "US", "JP", "VN").
@@ -132,12 +133,22 @@ def all_timezones(country_code: str = "") -> dict:
     if country_code not in zone_tab:
         return {"error": f"Unknown country code: '{country_code}'"}
 
-    timezones = zone_tab[country_code]
+    tz_names = zone_tab[country_code]
     country_name = _get_country_name(country_code)
+
+    timezones = []
+    for name in sorted(tz_names):
+        tz = ZoneInfo(name)
+        now = datetime.now(tz)
+        timezones.append({
+            "name": name,
+            "code": now.strftime("%Z"),
+            "utc_offset": now.strftime("%z"),
+        })
 
     return {
         "country": country_name,
         "country_code": country_code,
-        "timezones": sorted(timezones),
+        "timezones": timezones,
         "count": len(timezones),
     }
