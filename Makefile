@@ -1,6 +1,10 @@
 unexport VIRTUAL_ENV
 
-.PHONY: setup py_req user_info run test mcp_config inspector
+# OLLAMA_MODEL ?= mistral-small3.2:latest
+OLLAMA_MODEL ?= qwen3-vl:8b
+#OLLAMA_MODEL ?= llama4:16x17b
+
+.PHONY: setup py_req user_info run test mcp_config config inspector
 
 setup: py_req user_info mcp_config
 
@@ -15,24 +19,36 @@ user_info:
 	@uv sync
 	@uv run python -c "from utils.user_data import ensure_user_info; ensure_user_info()"
 
-run:
-	@uv run python mcp_server.py --transport http
+setup_ollama:
+	@ollama pull $(OLLAMA_MODEL)
 
-test-ip:
+run_mcp:
+	@uv run watchfiles "uv run python mcp_server.py --transport http" . --filter python
+
+run:
+	@(ollama serve &)
+	@echo "Running MCP server with model: $(OLLAMA_MODEL)"
+	@mcphost --model 'ollama:$(OLLAMA_MODEL)'
+
+test_ip:
 	@uv run python utils.py ip_address.public_ipv4
 
-test: test-ip
+test: test_ip
 
 mcp_config:
 	@echo '{'
 	@echo '  "mcpServers": {'
-	@echo '    "tools": {'
+	@echo '    "py_tools": {'
 	@echo '      "command": "uv",'
 	@echo '      "args": ["run", "python", "mcp_server.py"],'
 	@echo '      "cwd": "$(CURDIR)"'
 	@echo '    }'
 	@echo '  }'
 	@echo '}'
+
+config:
+	@set -a; [ -f .env ] && . ./.env; set +a; \
+		PWD="$(CURDIR)" envsubst < lmstudio.cfg.json
 
 inspector:
 	@npx @modelcontextprotocol/inspector

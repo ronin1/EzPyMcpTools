@@ -25,7 +25,7 @@ After pulling this project from GitHub:
 ```json
 {
   "mcpServers": {
-    "tools": {
+    "py_tools": {
       "command": "uv",
       "args": ["run", "python", "mcp_server.py"],
       "cwd": "~/{repo-dir}/tools"
