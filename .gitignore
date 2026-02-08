@@ -31,7 +31,7 @@ ENV/
 # --------------------
 # IDE / Editor
 # --------------------
-.vscode/
+# .vscode/
 .idea/
 *.swp
 *.swo
@@ -70,4 +70,5 @@ htmlcov/
 # Misc
 # --------------------
 *.log
+*.data.json
 tmp/

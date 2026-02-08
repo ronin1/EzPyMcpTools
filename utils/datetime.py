@@ -32,7 +32,7 @@ def _detect_country_code_from_locale() -> str:
     """Detect country code from the system locale."""
     import locale
 
-    loc = locale.getlocale()[0] or locale.getdefaultlocale()[0] or ""
+    loc: str = locale.getlocale()[0] or locale.getdefaultlocale()[0] or ""
     # Locale is like "en_US" — extract the country code part
     if "_" in loc:
         return loc.split("_")[1][:2].upper()
@@ -64,10 +64,10 @@ def current(time_zone: str = "") -> dict:
     now = datetime.now(tz)
 
     return {
-        "current_date_time": {
+        "date_time": {
+            "value": now.strftime("%Y-%m-%d %I:%M:%S %p"),
             "iso8601": now.isoformat(),
             "unix_timestamp": now.timestamp(),
-            "human_readable": now.strftime("%Y-%m-%d %H:%M:%S"),
         },
         "timezone": {
             "name": time_zone if time_zone else str(tz),

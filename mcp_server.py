@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""MCP server that auto-discovers and exposes all public functions from utils/*.py."""
+"""
+MCP server that auto-discovers and exposes all public functions in utils/*.py.
+"""
 
 import importlib
 import inspect
@@ -22,13 +24,17 @@ def _make_json_wrapper(func):
             return json.dumps(result, indent=2)
         return result
 
-    # Preserve the original signature for MCP tool schema generation
-    wrapper.__signature__ = inspect.signature(func)
+    # Preserve the original signature for MCP tool schema
+    wrapper.__wrapped__ = func  # type: ignore[attr-defined]
+    wrapper.__signature__ = inspect.signature(func)  # type: ignore
     return wrapper
 
 
 def _discover_and_register() -> None:
-    """Dynamically import all public functions from utils/*.py and register as MCP tools."""
+    """
+    Dynamically import all public functions from utils/*.py and
+    register as MCP tools.
+    """
     utils_dir = pathlib.Path(__file__).parent / "utils"
 
     for module_path in sorted(utils_dir.glob("*.py")):
