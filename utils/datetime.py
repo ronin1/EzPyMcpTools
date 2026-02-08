@@ -48,7 +48,7 @@ def _get_country_name(code: str) -> str:
     return ""
 
 
-def get_current_datetime(time_zone: str = "") -> dict:
+def current(time_zone: str = "") -> dict:
     """Get the current date and time.
 
     Args:
@@ -82,10 +82,10 @@ def configured_timezone() -> dict:
     Returns:
         Dict with the currently configured timezone.
     """
-    return get_timezones()
+    return all_timezones()
 
 
-def get_timezones(country_code: str = "") -> dict:
+def all_timezones(country_code: str = "") -> dict:
     """Get all timezones for a country.
 
     Args:

@@ -33,7 +33,8 @@ def _compute_age(birthday: str) -> int:
     """Compute age from a birthday string (YYYY-MM-DD)."""
     born = date.fromisoformat(birthday)
     today = date.today()
-    return today.year - born.year - ((today.month, today.day) < (born.month, born.day))
+    return today.year - born.year - \
+        ((today.month, today.day) < (born.month, born.day))
 
 
 def personal_information() -> dict:

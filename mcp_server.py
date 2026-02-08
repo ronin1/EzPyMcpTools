@@ -9,18 +9,6 @@ from fastmcp import FastMCP
 
 mcp = FastMCP("Tools")
 
-# Mount mcp-server-everything (reference MCP server with sample tools)
-# everything_config = {
-#     "mcpServers": {
-#         "default": {
-#             "command": "npx",
-#             "args": ["-y", "@modelcontextprotocol/server-everything"],
-#         }
-#     }
-# }
-# everything_proxy = FastMCP.as_proxy(everything_config, name="Everything")
-# mcp.mount(everything_proxy, prefix="everything")
-
 
 def _make_json_wrapper(func):
     """Wrap a dict-returning function to return a JSON string for MCP."""
@@ -47,12 +35,15 @@ def _discover_and_register() -> None:
         if module_path.name.startswith("_"):
             continue
 
-        module_name = f"utils.{module_path.stem}"
+        namespace = module_path.stem
+        module_name = f"utils.{namespace}"
         module = importlib.import_module(module_name)
 
         for name, obj in inspect.getmembers(module, inspect.isfunction):
             if not name.startswith("_") and obj.__module__ == module.__name__:
-                mcp.tool()(_make_json_wrapper(obj))
+                qualified_name = f"{namespace}.{name}"
+                wrapped = _make_json_wrapper(obj)
+                mcp.tool(name=qualified_name)(wrapped)
 
 
 _discover_and_register()

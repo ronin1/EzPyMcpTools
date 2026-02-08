@@ -1,12 +1,15 @@
 unexport VIRTUAL_ENV
 
-.PHONY: run test-ip inspector
+.PHONY: setup run test-ip inspector
+
+setup:
+	uv sync
 
 run:
 	uv run python mcp_server.py --transport http
 
 test-ip:
-	uv run python utils.py my_public_ip_address
+	uv run python utils.py ip_address.public_ipv4
 
 inspector:
 	npx @modelcontextprotocol/inspector
