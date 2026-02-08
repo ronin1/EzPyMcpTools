@@ -25,7 +25,7 @@ setup_ollama:
 run_mcp:
 	@uv run watchfiles "uv run python mcp_server.py --transport http" . --filter python
 
-run:
+run_ollama:
 	@(ollama serve &)
 	@echo "Running MCP server with model: $(OLLAMA_MODEL)"
 	@mcphost --model 'ollama:$(OLLAMA_MODEL)'
@@ -38,7 +38,7 @@ test: test_ip
 mcp_config:
 	@echo '{'
 	@echo '  "mcpServers": {'
-	@echo '    "py_tools": {'
+	@echo '    "ezpy_tools": {'
 	@echo '      "command": "uv",'
 	@echo '      "args": ["run", "python", "mcp_server.py"],'
 	@echo '      "cwd": "$(CURDIR)"'

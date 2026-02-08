@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "py_tools": {
-      "command": "uv",
-      "args": ["run", "python", "mcp_server.py"],
-      "cwd": "~/ai/tools"
-    }
-  }
-}

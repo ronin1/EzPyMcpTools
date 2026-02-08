@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "py_tools": {
+    "ezpy_tools": {
       "command": "uv",
       "args": [
         "run",

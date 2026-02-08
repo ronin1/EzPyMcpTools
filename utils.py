@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""CLI entry point that auto-discovers public functions from utils/*.py modules."""
+"""
+CLI entry point that auto-discovers public functions from utils/*.py modules.
+"""
 
 import importlib
 import inspect
@@ -7,21 +9,21 @@ import pathlib
 import sys
 
 
-def _discover_functions() -> dict[str, dict[str, callable]]:
+def _discover_functions() -> dict[str, dict[str, callable]]:  # type: ignore
     """Dynamically import all public functions from utils/*.py modules.
 
     Returns:
         Nested dict: {namespace: {function_name: callable}}
     """
-    namespaces: dict[str, dict[str, callable]] = {}
+    result: dict[str, dict[str, callable]] = {}  # type: ignore
     utils_dir = pathlib.Path(__file__).parent / "utils"
 
     for module_path in sorted(utils_dir.glob("*.py")):
         if module_path.name.startswith("_"):
             continue
 
-        namespace = module_path.stem
-        module_name = f"utils.{namespace}"
+        ns = module_path.stem
+        module_name = f"utils.{ns}"
         module = importlib.import_module(module_name)
 
         funcs = {}
@@ -30,22 +32,26 @@ def _discover_functions() -> dict[str, dict[str, callable]]:
                 funcs[name] = obj
 
         if funcs:
-            namespaces[namespace] = funcs
+            result[ns] = funcs
 
-    return namespaces
+    return result
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """CLI entry point."""
+    import json
+
     namespaces = _discover_functions()
 
     if len(sys.argv) < 2:
-        print(f"Usage: python {sys.argv[0]} <namespace.function> [args...]")
-        print(f"\nAvailable functions:")
+        print(f"Usage: {sys.argv[0]} <namespace.function> [args...]")
+        print("\nAvailable functions:")
         for ns, funcs in namespaces.items():
             print(f"\n  [{ns}]")
             for name, func in funcs.items():
                 sig = inspect.signature(func)
-                doc = (func.__doc__ or "").strip().split("\n")[0]
+                doc = (func.__doc__ or ""  # type: ignore
+                       ).strip().split("\n")[0]
                 print(f"    {ns}.{name}{sig}")
                 if doc:
                     print(f"      {doc}")
@@ -55,23 +61,36 @@ if __name__ == "__main__":
     func_args = sys.argv[2:]
 
     if "." not in qualified_name:
-        print(f"Error: Use <namespace.function> format, e.g. datetime.get_current_datetime")
-        print(f"Available namespaces: {', '.join(namespaces)}")
+        print(
+            "Error: Use <namespace.function> format,"
+            " e.g. datetime.current"
+        )
+        print(
+            f"Available namespaces: "
+            f"{', '.join(namespaces)}"
+        )
         sys.exit(1)
 
     namespace, func_name = qualified_name.split(".", 1)
 
     if namespace not in namespaces:
         print(f"Error: Unknown namespace '{namespace}'")
-        print(f"Available namespaces: {', '.join(namespaces)}")
+        print(
+            f"Available namespaces: "
+            f"{', '.join(namespaces)}"
+        )
         sys.exit(1)
 
     if func_name not in namespaces[namespace]:
-        print(f"Error: Unknown function '{func_name}' in '{namespace}'")
-        print(f"Available functions: {', '.join(namespaces[namespace])}")
+        print(
+            f"Error: Unknown function "
+            f"'{func_name}' in '{namespace}'"
+        )
+        print(
+            f"Available functions: "
+            f"{', '.join(namespaces[namespace])}"
+        )
         sys.exit(1)
-
-    import json
 
     func = namespaces[namespace][func_name]
     sig = inspect.signature(func)
@@ -83,5 +102,9 @@ if __name__ == "__main__":
         else:
             typed_args.append(arg)
 
-    result = func(*typed_args)
+    result = func(*typed_args)  # type: ignore
     print(json.dumps(result, indent=2))
+
+
+if __name__ == "__main__":
+    main()

@@ -1,23 +1,15 @@
 # --------------------
 # Python
 # --------------------
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-
-# Distribution / packaging
-build/
-dist/
-*.egg-info/
-*.egg
-wheels/
-MANIFEST
+**/__pycache__/
+**/*.py[cod]
+**/$py.class
+**/*.so
 
 # Virtual environments
-.venv/
-venv/
-ENV/
+**/.venv/
+**/venv/
+**/ENV/
 
 # --------------------
 # uv
@@ -32,43 +24,43 @@ ENV/
 # IDE / Editor
 # --------------------
 # .vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
+**/.idea/
+**/*.swp
+**/*.swo
+**/*~
+**/.DS_Store
 
 # --------------------
 # Testing / Coverage
 # --------------------
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
-.nox/
+**/.pytest_cache/
+**/.coverage
+**/htmlcov/
+**/.tox/
+**/.nox/
 
 # --------------------
 # Type checking
 # --------------------
-.mypy_cache/
-.pytype/
-.pyre/
+**/.mypy_cache/
+**/.pytype/
+**/.pyre/
 
 # --------------------
 # Jupyter
 # --------------------
-.ipynb_checkpoints/
+**/.ipynb_checkpoints/
 
 # --------------------
 # Environment variables
 # --------------------
-.env
-.env.*
+**/.env
+**/.env.*
 !.env.example
 
 # --------------------
 # Misc
 # --------------------
-*.log
-*.data.json
-tmp/
+**/*.log
+**/*.data.json
+**/*.tmp/
