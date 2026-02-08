@@ -24,7 +24,10 @@ After pulling this project from GitHub:
 
 ## Install Instruction
 
-If you are new to MCP Tooling or just starting AI work. I recommend LmStudio over Ollama as LmStudio is simpler & easier to get started with. It also allows you to select between MLX (Apple Metal Optimized models) over GGUF (NVdia Optimized) for better offloading with the hardware that you have. LmStudio model search also shows (& allow for filtering) based on model capabilities like tool use, thinking, vision, etc. The experience of setting up & running Ollama is clunky at best.
+- If you are new to MCP Tooling or just starting AI work. I recommend LmStudio over Ollama as LmStudio is simpler & easier to get started with.
+- LmStudio also allows you to select between MLX (Apple Metal Optimized models) & GGUF (NVdia Optimized) for better offloading with the hardware that you have.
+- LmStudio model search also shows (& allow for filtering) based on model capabilities like tool use, thinking, vision, etc.
+- The experience of setting up & running Ollama is clunky at best.
 
 ### LmStudio Setup
 
