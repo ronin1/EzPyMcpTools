@@ -76,13 +76,38 @@ def current(time_zone: str = "") -> dict:
     }
 
 
+def _get_local_iana_timezone() -> str:
+    """Get the local IANA timezone name."""
+    import time
+    import os
+
+    # Check TZ env var first
+    tz_env = os.environ.get("TZ", "")
+    if tz_env:
+        return tz_env
+
+    # macOS: read /etc/localtime symlink
+    link = "/etc/localtime"
+    if os.path.islink(link):
+        target = os.path.realpath(link)
+        # e.g. /usr/share/zoneinfo/America/Los_Angeles
+        marker = "/zoneinfo/"
+        if marker in target:
+            return target.split(marker, 1)[1]
+
+    # Fallback to abbreviation
+    return time.tzname[0]
+
+
 def configured_timezone() -> dict:
     """Get the currently configured timezone.
 
     Returns:
         Dict with the currently configured timezone.
     """
-    return all_timezones()
+    return {
+        "timezone": _get_local_iana_timezone()
+    }
 
 
 def all_timezones(country_code: str = "") -> dict:
