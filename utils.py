@@ -49,5 +49,7 @@ if __name__ == "__main__":
         print(f"Available functions: {', '.join(functions)}")
         sys.exit(1)
 
+    import json
+
     result = functions[func_name](*func_args)
-    print(result)
+    print(json.dumps(result, indent=2))
