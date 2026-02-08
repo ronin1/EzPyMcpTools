@@ -1,4 +1,4 @@
-# Easy MCP PyTools
+# Easy Python MCP Tools
 
 - An easy way to create a bunch of custom tools for an MCP server.
 - Currently, this project is used as a local MCP server for LmStudio.
