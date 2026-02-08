@@ -3,7 +3,7 @@
 - An easy way to create a bunch of custom tools for an MCP server.
 - Currently, this project is used as a local MCP server for [LmStudio](https://lmstudio.ai) (or [Ollama](https://docs.ollama.com)); primarily for use with OpenSource models.
 - It allows you to write plain Python scripts & those will show up as proper agent tools (with name space & instructions).
-- This code has not be tested outside of MacOS (it should work ok on Linux, forget Windows).
+- This code has not be tested outside of MacOS; it should work ok on Linux. I'm sorry but I don't have a machine with Windows OS to test.
 
 ## But Why?
 
@@ -70,6 +70,12 @@ This is as simple as:
 - You can test these tools directly (without running an MCP server) using `./tools` command
 - You can also run the MCP server over HTTP protocol by running `make run`
 - All available Python debugger should work with `./utils.py` or `./tools` symlink
+
+### Other Comercial Models & Agents
+
+- Being a standard MCP server, it __should__ be compatible with all agents & models (including comercial ones).
+- Currently, this MCP server is being built for local run via `stdio` transport.  
+- You can start it with `http` or `sse` transport by running: `uv run python mcp_server.py --transport http`
 
 ### To test individual tool
 
