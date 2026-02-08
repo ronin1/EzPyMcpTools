@@ -40,6 +40,7 @@ This is as simple as:
 
 - creating a new `{name_space}.py` file under `./utils/` folder
 - Inside of this python script, any public function will show up as an MCP tool with `{name_space}.{function_name}`
+- Function can take any length of input, as long as it's basic types. It can return `None` or `dict` (any variation of `Dict[K, V]`). See `./utils/` for details.
 - You can test these tools directly (without running an MCP server) using `./tools` command
 - You can also run the MCP server over HTTP protocol by running `make run`
 
