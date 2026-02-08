@@ -28,7 +28,7 @@ After pulling this project from GitHub:
     "tools": {
       "command": "uv",
       "args": ["run", "python", "mcp_server.py"],
-      "cwd": "~/ai/tools"
+      "cwd": "~/{repo-dir}/tools"
     }
   }
 }
