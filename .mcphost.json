@@ -3,7 +3,7 @@
     "py_tools": {
       "command": "uv",
       "args": ["run", "python", "mcp_server.py"],
-      "cwd": "/Users/huy/ai/tools"
+      "cwd": "~/ai/tools"
     }
   }
 }
