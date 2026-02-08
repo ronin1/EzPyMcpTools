@@ -1,6 +1,21 @@
-# Install Instruction
+# Easy MCP PyTools
 
-Use this to install as LMStudio MCP Server
+## General Setup
+
+After pulling this project from GitHub:
+
+- Ensure that you have Python12+ installed
+- In your console, run `make setup`, this will install all required python packages & propmpt you for your basic personal information & save it under `./user.data.json`
+- Don't worry, `*.data.json` & `*.log` files are already in `.gitignore` & will never be checked in (on accident or on purpose)
+- `make setup` will also call `make mcp_config` which prints the required configuration for LmStudio & OLLAMA.
+
+## Install Instruction
+
+### LmStudio
+
+- Goto [lmstudio.ai](https://lmstudio.ai) & Downlaod the UI tool
+- Use any model that supports tool use. Currently (Feb 7th, 2026), the author's favorite model is [Mistral 3](https://lmstudio.ai/models/ministral) or [Gema 3](https://lmstudio.ai/models/gemma-3) provided that you have enough VRAM. Any model with tool use would work
+- Once the model finish download, load it up in a new chat & click on the 🔨 (hammer icon) to configure a custom MCP server & paste in the mcp configuration from `make setup` (or `make mcp_config`); should look like this:
 
 ```json
 {
@@ -14,7 +29,16 @@ Use this to install as LMStudio MCP Server
 }
 ```
 
-To test individual tool:
+## Writing a new Tool
+
+This is as simple as:
+
+- creating a new `{name_space}.py` file under `./utils/` folder
+- Inside of this python script, any public function will show up as an MCP tool with `{name_space}.{function_name}`
+- You can test these tools directly (without running an MCP server) using `./tools` command
+- You can also run the MCP server over HTTP protocol by running `make run`
+
+### To test individual tool
 
 ```sh
 # print help & all available commands (what the MCP will see too)
