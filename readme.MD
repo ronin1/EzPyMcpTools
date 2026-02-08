@@ -60,6 +60,12 @@ By choosing **Ollama**, we assume you know what you're doing:
 - This will launch a console based chat app with the configured tools
 - Ask the same question to test: `What's the current time?`
 
+### Other Comercial Models & Agents
+
+- Being a standard MCP server, it __should__ be compatible with all agents & models (including comercial ones).
+- Currently, this MCP server is being built for local run via `stdio` transport.  
+- You can start it with `http` or `sse` transport by running: `uv run python mcp_server.py --transport http`
+
 ## Writing a new Tool
 
 This is as simple as:
@@ -70,12 +76,6 @@ This is as simple as:
 - You can test these tools directly (without running an MCP server) using `./tools` command
 - You can also run the MCP server over HTTP protocol by running `make run`
 - All available Python debugger should work with `./utils.py` or `./tools` symlink
-
-### Other Comercial Models & Agents
-
-- Being a standard MCP server, it __should__ be compatible with all agents & models (including comercial ones).
-- Currently, this MCP server is being built for local run via `stdio` transport.  
-- You can start it with `http` or `sse` transport by running: `uv run python mcp_server.py --transport http`
 
 ### To test individual tool
 
