@@ -1,6 +1,7 @@
 # Install Instruction
 
 Use this to install as LMStudio MCP Server
+
 ```json
 {
   "mcpServers": {
@@ -14,10 +15,13 @@ Use this to install as LMStudio MCP Server
 ```
 
 To test individual tool:
+
 ```sh
 # print help & all available commands (what the MCP will see too)
-./utils.py
+./tools
 
 # test a specific command
-./utils.py get_current_datetime
+./tools get_current_datetime
 ```
+
+`./tools` is a symlink file to `./utils.py`
