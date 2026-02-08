@@ -70,7 +70,8 @@ def current(time_zone: str = "") -> dict:
             "unix_timestamp": now.timestamp(),
         },
         "timezone": {
-            "name": time_zone if time_zone else str(tz),
+            "name": _get_local_iana_timezone(),
+            "code": time_zone if time_zone else str(tz),
             "utc_offset": now.strftime("%z"),
         },
     }
@@ -106,7 +107,7 @@ def configured_timezone() -> dict:
         Dict with the currently configured timezone.
     """
     return {
-        "timezone": _get_local_iana_timezone()
+        "timezone_name": _get_local_iana_timezone()
     }
 
 
