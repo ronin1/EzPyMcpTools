@@ -1,9 +1,17 @@
 # Easy Python MCP Tools
 
 - An easy way to create a bunch of custom tools for an MCP server.
-- Currently, this project is used as a local MCP server for LmStudio.
+- Currently, this project is used as a local MCP server for LmStudio; primarily for use with OpenSource models.
 - It allows you to write plain Python scripts & those will show up as proper agent tools (with name space & instructions).
 - This code has not be tested outside of MacOS (it should work ok on Linux, forget Windows).
+
+## But Why?
+
+- Although local OSS Models performance is not as good as hosted Comercial models of today; they are about as good as hosted comercial model of 1-2 years ago.
+- The one thing that OOS Models get you that comercial models don't are: Complete Privacy & Security. It also costs you nonthing but electricity to run on your own hardware.
+- Comercial models has all the tooling built in. For something as simple as, asking for the current time. An OSS model can't do it without you, giving it the tools to fetch time.
+- This is what this project aims to do: Make tool creation simple & empower OSS models to make it useful; but with total Privacy & Security. The data never leaves your machine.
+- Try asking the question `What's the current time?` Before you enable these tools. The LLM can't answer. After enabling this tool, you can even ask things like: `What's the current time in Hawaii?`
 
 ## General Setup
 
