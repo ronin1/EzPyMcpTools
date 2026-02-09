@@ -1,6 +1,6 @@
 # Easy Python MCP Tools
 
-- An easy way to create a bunch of custom tools for an MCP server.
+- An easy way to create a bunch of custom tools for an Model Context Protocol (MCP) server - see Anthropic [MCP specs](https://modelcontextprotocol.io/specification/2025-06-18/basic) for more info.
 - Currently, this project is used as a local MCP server for [LmStudio](https://lmstudio.ai) (or [Ollama](https://docs.ollama.com)); primarily for use with OpenSource models.
 - It allows you to write plain Python scripts & those will show up as proper agent tools (with name space & instructions).
 - This code has not be tested outside of MacOS; it should work ok on Linux. I'm sorry but I don't have a machine with Windows OS to test.
