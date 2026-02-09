@@ -29,7 +29,7 @@ def _discover_and_register() -> None:
 
         for name, obj in inspect.getmembers(module, inspect.isfunction):
             if not name.startswith("_") and obj.__module__ == module.__name__:
-                qualified_name = f"{namespace}.{name}"
+                qualified_name = f"{namespace}__{name}"
                 mcp.tool(name=qualified_name)(obj)
 
 

@@ -73,7 +73,7 @@ By choosing **Ollama**, we assume you know what you're doing:
 This is as simple as:
 
 - Create a new `{name_space}.py` file under `./utils/` folder
-- Inside of this python script, any public function will show up as an MCP tool with `{name_space}.{function_name}`
+- Inside of this python script, any public function will show up as an MCP tool with `{name_space}__{function_name}`
 - Function can take any length of input, as long as it's basic types. It can return `None` or `dict` (any variation of `Dict[K, V]`). See `./utils/` for details.
 - Don't forget to add proper description / notation to your Python class & functions as these will end up being the tools instruction - exposed via this MCP server to your AI agents.
 - You can test these tools directly (without running an MCP server) using `./tools` command
@@ -85,28 +85,28 @@ This is as simple as:
 ```sh
 ./tools
 # print help & all available commands (what the MCP will see too)
-Usage: ./tools <namespace.function> [args...]
+Usage: ./tools <namespace__function> [args...]
 
 Available functions:
 
   [datetime]
-    datetime.configured_timezone() -> dict
+    datetime__configured_timezone() -> dict
       Get the currently configured timezone.
-    datetime.country_timezones(country_code: str = '') -> dict
+    datetime__country_timezones(country_code: str = '') -> dict
       Get all timezones for a country using ISO 3166 country code (2 chars).
-    datetime.current(time_zone: str = '') -> dict
+    datetime__current(time_zone: str = '') -> dict
       Get the current date and time.
 
   [ip_address]
-    ip_address.approximate_physical_location() -> dict
+    ip_address__approximate_physical_location() -> dict
       Get your current approximate physical location based on your public IP.
-    ip_address.public_ipv4() -> dict
+    ip_address__public_ipv4() -> dict
       Get current user's public IPv4 address, physical location, and ISP name.
 
 # etc...
 
 # test a specific command
-./tools datetime.current
+./tools datetime__current
 {
   "date_time": {
     "value": "2026-02-08 02:30:33 PM",

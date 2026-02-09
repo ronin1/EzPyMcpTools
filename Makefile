@@ -31,7 +31,7 @@ run_ollama:
 	@mcphost --model 'ollama:$(OLLAMA_MODEL)'
 
 test_ip:
-	@uv run python utils.py ip_address.public_ipv4
+	@uv run python utils.py ip_address__public_ipv4
 
 test: test_ip
 

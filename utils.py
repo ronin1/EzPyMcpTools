@@ -44,7 +44,10 @@ def main() -> None:
     namespaces = _discover_functions()
 
     if len(sys.argv) < 2:
-        print(f"Usage: {sys.argv[0]} <namespace.function> [args...]")
+        print(
+            f"Usage: {sys.argv[0]}"
+            " <namespace__function> [args...]"
+        )
         print("\nAvailable functions:")
         for ns, funcs in namespaces.items():
             print(f"\n  [{ns}]")
@@ -52,7 +55,7 @@ def main() -> None:
                 sig = inspect.signature(func)
                 doc = (func.__doc__ or ""  # type: ignore
                        ).strip().split("\n")[0]
-                print(f"    {ns}.{name}{sig}")
+                print(f"    {ns}__{name}{sig}")
                 if doc:
                     print(f"      {doc}")
         sys.exit(0)
@@ -60,10 +63,10 @@ def main() -> None:
     qualified_name = sys.argv[1]
     func_args = sys.argv[2:]
 
-    if "." not in qualified_name:
+    if "__" not in qualified_name:
         print(
-            "Error: Use <namespace.function> format,"
-            " e.g. datetime.current"
+            "Error: Use <namespace__function> format,"
+            " e.g. datetime__current"
         )
         print(
             f"Available namespaces: "
@@ -71,7 +74,9 @@ def main() -> None:
         )
         sys.exit(1)
 
-    namespace, func_name = qualified_name.split(".", 1)
+    namespace, func_name = qualified_name.split(
+        "__", 1
+    )
 
     if namespace not in namespaces:
         print(f"Error: Unknown namespace '{namespace}'")
