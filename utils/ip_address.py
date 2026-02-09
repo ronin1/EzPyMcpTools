@@ -1,4 +1,4 @@
-"""Public IP address & aproximate location utilities."""
+"""Public IP address & approximate location utilities."""
 
 import json
 import urllib.request
