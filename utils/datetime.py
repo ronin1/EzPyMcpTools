@@ -1,12 +1,14 @@
 """Date and time utilities."""
+
 from datetime import datetime
+from typing import Any
 from zoneinfo import ZoneInfo
 
 
 def _get_country_codes() -> dict[str, str]:
     """Parse iso3166.tab to build a country-name -> country-code mapping."""
     mapping = {}
-    with open("/usr/share/zoneinfo/iso3166.tab", "r", encoding="utf-8") as f:
+    with open("/usr/share/zoneinfo/iso3166.tab", encoding="utf-8") as f:
         for line in f:
             if line.startswith("#") or not line.strip():
                 continue
@@ -18,7 +20,7 @@ def _get_country_codes() -> dict[str, str]:
 def _get_zone_tab() -> dict[str, list[str]]:
     """Parse zone.tab to build a country-code -> timezones mapping."""
     mapping: dict[str, list[str]] = {}
-    with open("/usr/share/zoneinfo/zone.tab", "r", encoding="utf-8") as f:
+    with open("/usr/share/zoneinfo/zone.tab", encoding="utf-8") as f:
         for line in f:
             if line.startswith("#") or not line.strip():
                 continue
@@ -48,19 +50,22 @@ def _get_country_name(code: str) -> str:
     return ""
 
 
-def current(time_zone: str = "") -> dict:
+def current(time_zone: str = "") -> dict[str, Any]:
     """Get the current date and time.
 
     Args:
-        time_zone: IANA time zone name (e.g. "America/New_York", "Asia/Tokyo").
-                   If blank, the system's local timezone is used.
+        time_zone: IANA time zone name (e.g. "America/New_York",
+                   "Asia/Tokyo"). If blank, the system's local
+                   timezone is used.
 
     Returns:
-        Dict with `current_date_time` in ISO 8601 format and
-        `timezone` metadata.
+        Dict with `date_time` (containing `value` in AM/PM format,
+        `iso8601`, and `unix_timestamp`) and `timezone` (containing
+        IANA `name`, `code` abbreviation, and `utc_offset`).
     """
-    tz = ZoneInfo(time_zone) \
-        if time_zone else datetime.now().astimezone().tzinfo
+    tz = (
+        ZoneInfo(time_zone) if time_zone else datetime.now().astimezone().tzinfo
+    )
     now = datetime.now(tz)
 
     return {
@@ -79,8 +84,8 @@ def current(time_zone: str = "") -> dict:
 
 def _get_local_iana_timezone() -> str:
     """Get the local IANA timezone name."""
-    import time
     import os
+    import time
 
     # Check TZ env var first
     tz_env = os.environ.get("TZ", "")
@@ -100,27 +105,27 @@ def _get_local_iana_timezone() -> str:
     return time.tzname[0]
 
 
-def configured_timezone() -> dict:
-    """Get the currently configured timezone.
+def configured_timezone() -> dict[str, str]:
+    """Get the currently configured local timezone.
 
     Returns:
-        Dict with the currently configured timezone.
+        Dict with `timezone_name` as the IANA timezone
+        identifier (e.g. "America/Los_Angeles").
     """
-    return {
-        "timezone_name": _get_local_iana_timezone()
-    }
+    return {"timezone_name": _get_local_iana_timezone()}
 
 
-def country_timezones(country_code: str = "") -> dict:
-    """Get all timezones for a country using ISO 3166 country code (2 chars).
-    If blank, current system's locale is used to detect the country code.
+def country_timezones(country_code: str = "") -> dict[str, Any]:
+    """Get all timezones for a country.
 
     Args:
-        country_code: ISO 3166 country code (e.g. "US", "JP", "VN").
-                      If blank, detects from system locale.
+        country_code: ISO 3166 country code (e.g. "US", "JP",
+                      "VN"). If blank, detects from system locale.
 
     Returns:
-        Dict with the country code and its timezones.
+        Dict with `country`, `country_code`, `count`, and
+        `timezones` list (each with IANA `name`, `code`
+        abbreviation, and `utc_offset`).
     """
     if not country_code:
         country_code = _detect_country_code_from_locale()
@@ -136,15 +141,17 @@ def country_timezones(country_code: str = "") -> dict:
     tz_names = zone_tab[country_code]
     country_name = _get_country_name(country_code)
 
-    timezones = []
+    timezones: list[dict[str, str]] = []
     for name in sorted(tz_names):
         tz = ZoneInfo(name)
         now = datetime.now(tz)
-        timezones.append({
-            "name": name,
-            "code": now.strftime("%Z"),
-            "utc_offset": now.strftime("%z"),
-        })
+        timezones.append(
+            {
+                "name": name,
+                "code": now.strftime("%Z"),
+                "utc_offset": now.strftime("%z"),
+            }
+        )
 
     return {
         "country": country_name,

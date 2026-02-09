@@ -1,12 +1,13 @@
 """Public IP address & aproximate location utilities."""
+
 import json
 import urllib.request
-
+from typing import Any
 
 _IPINFO_URL = "https://ipinfo.io/json"
 
 
-def public_ipv4() -> dict:
+def public_ipv4() -> dict[str, Any]:
     """Get current user's public IPv4 address, physical location, and ISP name.
 
     Queries ipinfo.io to retrieve the caller's public-facing
@@ -16,11 +17,12 @@ def public_ipv4() -> dict:
         Dict with `public_ip`, `physical_location`, and `isp_name`.
     """
     req = urllib.request.Request(
-        _IPINFO_URL, headers={"Accept": "application/json"})
+        _IPINFO_URL, headers={"Accept": "application/json"}
+    )
     with urllib.request.urlopen(req, timeout=10) as resp:
         data = json.loads(resp.read().decode())
 
-    # ISP is in the "org" field, 
+    # ISP is in the "org" field,
     # typically prefixed with AS number (e.g. "AS7018 AT&T")
     org = data.get("org", "")
     isp_name = org.split(" ", 1)[1] if " " in org else org
@@ -36,7 +38,7 @@ def public_ipv4() -> dict:
     }
 
 
-def approximate_physical_location() -> dict:
+def approximate_physical_location() -> dict[str, str]:
     """Get your current approximate physical location based on your public IP.
 
     Returns:

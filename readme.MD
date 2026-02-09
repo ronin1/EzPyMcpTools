@@ -48,6 +48,16 @@ After pulling this project from GitHub:
 }
 ```
 
+#### Tips
+
+- Set temperature to a low value, `0.01` for better stability.
+- Change context overflow to `Rolling Window`
+- Adding the following to `System Prompt` seems to help with clarity:
+
+```txt
+Retry the prompt at least 3 times and at most 5 times on failure. Always write date time in expanded English & AM/PM.
+```
+
 ### Ollama Setup
 
 By choosing **Ollama**, we assume you know what you're doing:
@@ -82,28 +92,36 @@ This is as simple as:
 
 ### To test individual tool
 
-```sh
+```bash
 ./tools
 # print help & all available commands (what the MCP will see too)
-Usage: ./tools <namespace__function> [args...]
-
-Available functions:
+Run: 'ls ls <namespace>' to see functions information.
+Available namespaces:
 
   [datetime]
-    datetime__configured_timezone() -> dict
-      Get the currently configured timezone.
-    datetime__country_timezones(country_code: str = '') -> dict
-      Get all timezones for a country using ISO 3166 country code (2 chars).
-    datetime__current(time_zone: str = '') -> dict
-      Get the current date and time.
+    Date and time utilities.
 
   [ip_address]
-    ip_address__approximate_physical_location() -> dict
-      Get your current approximate physical location based on your public IP.
-    ip_address__public_ipv4() -> dict
-      Get current user's public IPv4 address, physical location, and ISP name.
+    Public IP address & aproximate location utilities.
 
-# etc...
+  [math]
+    Standard and scientific calculator utilities.
+
+  [user_information]
+    Current user's personal information utilities.
+
+# see all commands under datetime namespace
+./tools ls datetime
+[datetime]  Date and time utilities.
+
+  [func] datetime__configured_timezone() -> dict[str, str]
+         Get the currently configured timezone.
+
+  [func] datetime__country_timezones(country_code: str = '') -> dict[str, typing.Any]
+         Get all timezones for a country using ISO 3166 country code (2 chars).
+
+  [func] datetime__current(time_zone: str = '') -> dict[str, typing.Any]
+         Get the current date and time.
 
 # test a specific command
 ./tools datetime__current

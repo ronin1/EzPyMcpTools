@@ -4,7 +4,7 @@ unexport VIRTUAL_ENV
 OLLAMA_MODEL ?= qwen3-vl:8b
 #OLLAMA_MODEL ?= llama4:16x17b
 
-.PHONY: setup py_req user_info run test mcp_config config inspector
+.PHONY: setup py_req user_info run test mcp_config config inspector lint
 
 setup: py_req user_info mcp_config
 
@@ -17,7 +17,7 @@ py_req:
 
 user_info:
 	@uv sync
-	@uv run python -c "from utils.user_information import ensure_user_info; ensure_user_info()"
+	@uv run python -c "from utils.user_information import _ensure_user_info; _ensure_user_info()"
 
 setup_ollama:
 	@ollama pull $(OLLAMA_MODEL)
@@ -49,6 +49,10 @@ mcp_config:
 config:
 	@set -a; [ -f .env ] && . ./.env; set +a; \
 		PWD="$(CURDIR)" envsubst < lmstudio.cfg.json
+
+lint:
+	@uv run ruff check --fix .
+	@uv run ruff format .
 
 inspector:
 	@npx @modelcontextprotocol/inspector

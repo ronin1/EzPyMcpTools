@@ -27,10 +27,21 @@ def _discover_and_register() -> None:
         module_name = f"utils.{namespace}"
         module = importlib.import_module(module_name)
 
+        ns_doc = (module.__doc__ or "").strip().split("\n")[0]
+
         for name, obj in inspect.getmembers(module, inspect.isfunction):
             if not name.startswith("_") and obj.__module__ == module.__name__:
                 qualified_name = f"{namespace}__{name}"
-                mcp.tool(name=qualified_name)(obj)
+                func_doc = (obj.__doc__ or "").strip()
+                description = (
+                    f"[{namespace}] {ns_doc}\n{func_doc}"
+                    if ns_doc
+                    else func_doc
+                )
+                mcp.tool(
+                    name=qualified_name,
+                    description=description,
+                )(obj)
 
 
 _discover_and_register()
@@ -43,7 +54,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--transport", "-t",
+        "--transport",
+        "-t",
         default="stdio",
         choices=["stdio", "http", "sse"],
         help="Transport protocol (default: stdio)",

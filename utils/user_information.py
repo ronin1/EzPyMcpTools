@@ -1,8 +1,10 @@
 """Current user's personal information utilities."""
+
 import json
 import pathlib
 import subprocess
 from datetime import date
+from typing import Any
 
 
 def _get_full_name() -> str:
@@ -33,8 +35,11 @@ def _compute_age(birthday: str) -> int:
     """Compute age from a birthday string (YYYY-MM-DD)."""
     born = date.fromisoformat(birthday)
     today = date.today()
-    return today.year - born.year - \
-        ((today.month, today.day) < (born.month, born.day))
+    return (
+        today.year
+        - born.year
+        - ((today.month, today.day) < (born.month, born.day))
+    )
 
 
 _CONFIG_PATH = pathlib.Path(__file__).parent.parent / "user.data.json"
@@ -42,8 +47,8 @@ _REQUIRED_FIELDS = ["birthday", "email", "phone", "addresss"]
 
 
 def _ask_user(
-    existing: dict | None = None,
-) -> dict[str, object]:
+    existing: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Prompt the user for required personal info fields.
 
     Args:
@@ -53,16 +58,15 @@ def _ask_user(
     Returns:
         Complete dict with all required fields filled in.
     """
-    data: dict[str, object] = dict(existing) if existing else {}
+    data: dict[str, Any] = dict(existing) if existing else {}
 
     for field in _REQUIRED_FIELDS:
-        if field in data and data[field]:
+        if data.get(field):
             continue
 
         if field == "addresss":
             print(
-                f"\n{field} (enter one address per line,"
-                " blank line to finish):"
+                f"\n{field} (enter one address per line, blank line to finish):"
             )
             addresses: list[str] = []
             while True:
@@ -76,9 +80,7 @@ def _ask_user(
             data[field] = addresses
         elif field == "birthday":
             while True:
-                val = input(
-                    f"\n{field} (YYYY-MM-DD): "
-                ).strip()
+                val = input(f"\n{field} (YYYY-MM-DD): ").strip()
                 try:
                     date.fromisoformat(val)
                     data[field] = val
@@ -92,20 +94,19 @@ def _ask_user(
     return data
 
 
-def ensure_user_info() -> None:
-    """Create or update user_info.log interactively.
+def _ensure_user_info() -> None:
+    """Create or update user.data.json interactively.
 
     If the file doesn't exist or is missing required fields,
     prompt the user to fill them in.
     """
-    existing: dict[str, object] = {}
+    existing: dict[str, Any] = {}
     if _CONFIG_PATH.exists():
-        with open(_CONFIG_PATH, "r", encoding="utf-8") as f:
+        with open(_CONFIG_PATH, encoding="utf-8") as f:
             existing = json.load(f)
 
     missing = [
-        f for f in _REQUIRED_FIELDS
-        if f not in existing or not existing[f]
+        f for f in _REQUIRED_FIELDS if f not in existing or not existing[f]
     ]
 
     if not missing:
@@ -124,9 +125,14 @@ def ensure_user_info() -> None:
     print(f"\nSaved to {_CONFIG_PATH}")
 
 
-def personal_data() -> dict:
-    """Get current user's personal data."""
-    info: dict[str, object] = {
+def personal_data() -> dict[str, Any]:
+    """Get current user's personal data.
+
+    Returns:
+        Dict with `name`, `long_name`, `birthday`, `age`,
+        `email`, `phone`, and `addresss`.
+    """
+    info: dict[str, Any] = {
         "name": _get_username(),
         "long_name": _get_full_name(),
     }
@@ -134,12 +140,9 @@ def personal_data() -> dict:
     if not _CONFIG_PATH.exists():
         missing = _REQUIRED_FIELDS
     else:
-        with open(_CONFIG_PATH, "r", encoding="utf-8") as f:
+        with open(_CONFIG_PATH, encoding="utf-8") as f:
             data = json.load(f)
-        missing = [
-            f for f in _REQUIRED_FIELDS
-            if f not in data or not data[f]
-        ]
+        missing = [f for f in _REQUIRED_FIELDS if f not in data or not data[f]]
 
     if missing:
         raise FileNotFoundError(
@@ -148,7 +151,7 @@ def personal_data() -> dict:
             f"Missing fields: {', '.join(missing)}"
         )
 
-    with open(_CONFIG_PATH, "r", encoding="utf-8") as f:
+    with open(_CONFIG_PATH, encoding="utf-8") as f:
         data = json.load(f)
 
     info.update(data)
