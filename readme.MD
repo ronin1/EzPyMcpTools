@@ -1,6 +1,6 @@
 # Easy Python MCP Tools
 
-- An easy way to create a bunch of custom tools for a Model Context Protocol (MCP) server - see Anthropic [MCP specs](https://modelcontextprotocol.io/specification/2025-06-18/basic) for more info.
+- An easy way to create a bunch of custom tools for a Model Context Protocol (MCP) server.
 - Currently, this project is used as a local MCP server for [LmStudio](https://lmstudio.ai) (or [Ollama](https://docs.ollama.com)); primarily for use with open-source models.
 - It allows you to write plain Python scripts & those will show up as proper agent tools (with name space & instructions).
 - This code has not been tested outside of macOS; it should work ok on Linux. I'm sorry but I don't have a machine with Windows OS to test.
@@ -20,7 +20,7 @@ After pulling this project from GitHub:
 
 - Ensure that you have Python 3.12+ installed
 - In your console, run `make setup`, this will install all required Python packages & prompt you for your basic personal information & save it under `./user.data.json`
-- Don't worry, `*.data.json` & `*.log` files are already in `.gitignore` & will never be checked in (on accident or on purpose)
+- Don't worry, `*.data.json` files are already in [.gitignore](./.gitignore#L65) & will never be checked in (on accident or on purpose)
 - `make setup` will also call `make mcp_config` which prints the required configuration for LmStudio & Ollama.
 
 ## Install Instructions
@@ -80,6 +80,7 @@ By choosing **Ollama**, we assume you know what you're doing:
 - Currently, this MCP server is being built for local run via `stdio` transport.  
 - You can start it with `http` or `sse` transport by running: `uv run python mcp_server.py --transport http`
 - *WARNING:* This MCP server has no authentication built in currently. Please do not run in `http` or `sse` protocol & expose it to the open web. You *will* get hacked.
+- See Anthropic [MCP specs](https://modelcontextprotocol.io/specification/2025-06-18/basic) for more info.
 
 ## Writing a new Tool
 
