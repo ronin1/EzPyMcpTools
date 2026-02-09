@@ -58,6 +58,7 @@ After pulling this project from GitHub:
 Retry the prompt up to 5 times on failure.
 Always write date time in expanded English & AM/PM.
 Give short & concise answers, no emojis.
+Use ezpy-tool `user_information__personal_data` to get current user info.
 ```
 
 ### Ollama Setup
