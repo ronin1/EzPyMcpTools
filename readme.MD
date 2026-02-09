@@ -95,7 +95,7 @@ This is as simple as:
 
 ### To test individual tool
 
-```bash
+```text
 ./tools
 # print help & all available commands (what the MCP will see too)
 Run: 'ls ls <namespace>' to see functions information.
