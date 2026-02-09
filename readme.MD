@@ -59,10 +59,11 @@ After pulling this project from GitHub:
 
 ```txt
 Retry the prompt up to 5 times on failure and no more.
-Prefer available tool for better accuracy. Response with `I don't know the answer` if your confidence is lower than 70%.
-Always write date time in expanded English & AM/PM.
-Give short & concise answers, no emojis.
+Prefer available tool for better accuracy. 
+Response with `I don't know the answer` if your confidence is lower than 70%.
 Use ezpy-tool `user_information__personal_data` to get current user info.
+Give short & concise answers, no emojis.
+Always write date time in expanded English & AM/PM.
 ```
 
 ### Ollama Setup
