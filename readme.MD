@@ -55,7 +55,9 @@ After pulling this project from GitHub:
 - Adding the following to `System Prompt` seems to help with clarity:
 
 ```txt
-Retry the prompt at least 3 times and at most 5 times on failure. Always write date time in expanded English & AM/PM.
+Retry the prompt up to 5 times on failure.
+Always write date time in expanded English & AM/PM.
+Give short & concise answers, no emojis.
 ```
 
 ### Ollama Setup
