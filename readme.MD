@@ -55,7 +55,7 @@ After pulling this project from GitHub:
 - Adding the following to `System Prompt` seems to help with clarity:
 
 ```txt
-Retry the prompt up to 5 times on failure.
+Retry the prompt up to 5 times on failure and no more.
 Always write date time in expanded English & AM/PM.
 Give short & concise answers, no emojis.
 Use ezpy-tool `user_information__personal_data` to get current user info.

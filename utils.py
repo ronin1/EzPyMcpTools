@@ -100,7 +100,7 @@ def main() -> None:
     func_args = sys.argv[2:]
 
     if "__" not in qualified_name:
-        print("Error: Use <namespace__function> format, e.g. datetime__current")
+        print("Error: Use <namespace__function> format, eg: datetime__current")
         print("Available namespaces: " + ", ".join(namespaces))
         sys.exit(1)
 
