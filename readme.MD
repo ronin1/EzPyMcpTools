@@ -89,6 +89,7 @@ This is as simple as:
 - Inside of this python script, any public function will show up as an MCP tool with `{name_space}__{function_name}`
 - Function can take any length of input, as long as it's basic types. It can return `None` or `dict` (any variation of `Dict[K, V]`). See `./utils/` for details.
 - Don't forget to add proper description / notation to your Python class & functions as these will end up being the tools instruction - exposed via this MCP server to your AI agents.
+- For a the example above, I gave the model the ability to tell time via this [datetime tool](./utils/datetime.py#L53) `current()` function.
 - You can test these tools directly (without running an MCP server) using `./tools` command
 - You can also run the MCP server over HTTP protocol by running `make run`
 - All available Python debugger should work with `./utils.py` or `./tools` symlink
