@@ -2,7 +2,85 @@
 
 from datetime import datetime
 from typing import Any
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, available_timezones
+
+# Common abbreviation -> IANA timezone mapping.
+# Many abbreviations are ambiguous (e.g. CST = US Central,
+# China Standard, or Cuba Standard). This maps to the most
+# commonly expected IANA zone for each.
+_ABBREV_TO_IANA: dict[str, str] = {
+    "EST": "America/New_York",
+    "EDT": "America/New_York",
+    "CST": "America/Chicago",
+    "CDT": "America/Chicago",
+    "MST": "America/Denver",
+    "MDT": "America/Denver",
+    "PST": "America/Los_Angeles",
+    "PDT": "America/Los_Angeles",
+    "AKST": "America/Anchorage",
+    "AKDT": "America/Anchorage",
+    "HST": "Pacific/Honolulu",
+    "AST": "America/Puerto_Rico",
+    "NST": "America/St_Johns",
+    "NDT": "America/St_Johns",
+    "GMT": "Europe/London",
+    "UTC": "UTC",
+    "BST": "Europe/London",
+    "CET": "Europe/Paris",
+    "CEST": "Europe/Paris",
+    "EET": "Europe/Bucharest",
+    "EEST": "Europe/Bucharest",
+    "WET": "Europe/Lisbon",
+    "WEST": "Europe/Lisbon",
+    "IST": "Asia/Kolkata",
+    "JST": "Asia/Tokyo",
+    "KST": "Asia/Seoul",
+    "CST_CN": "Asia/Shanghai",
+    "HKT": "Asia/Hong_Kong",
+    "SGT": "Asia/Singapore",
+    "PHT": "Asia/Manila",
+    "ICT": "Asia/Bangkok",
+    "WIB": "Asia/Jakarta",
+    "AEST": "Australia/Sydney",
+    "AEDT": "Australia/Sydney",
+    "ACST": "Australia/Adelaide",
+    "ACDT": "Australia/Adelaide",
+    "AWST": "Australia/Perth",
+    "NZST": "Pacific/Auckland",
+    "NZDT": "Pacific/Auckland",
+}
+
+
+def _resolve_timezone(
+    time_zone: str,
+) -> ZoneInfo | None:
+    """Resolve a timezone string to a ZoneInfo object.
+
+    Accepts IANA names (contains '/') or common
+    abbreviations (e.g. PST, EST, JST). Returns None
+    if the timezone cannot be resolved.
+    """
+    if not time_zone:
+        return None
+
+    # IANA format (contains a slash, e.g. "America/New_York")
+    if "/" in time_zone:
+        try:
+            return ZoneInfo(time_zone)
+        except (KeyError, ValueError):
+            return None
+
+    # Try abbreviation lookup (case-insensitive)
+    upper = time_zone.upper()
+    iana = _ABBREV_TO_IANA.get(upper)
+    if iana:
+        return ZoneInfo(iana)
+
+    # Try as-is in case it's a valid IANA key (e.g. "UTC")
+    if time_zone in available_timezones():
+        return ZoneInfo(time_zone)
+
+    return None
 
 
 def _get_country_codes() -> dict[str, str]:
@@ -54,19 +132,31 @@ def current(time_zone: str = "") -> dict[str, Any]:
     """Get the current date and time.
 
     Args:
-        time_zone: IANA time zone name (e.g. "America/New_York",
-                   "Asia/Tokyo"). If blank, the system's local
-                   timezone is used.
+        time_zone: IANA name (e.g. "America/New_York") or common
+                   abbreviation (e.g. "PST", "EST", "JST"). If
+                   blank, the system's local timezone is used.
 
     Returns:
         Dict with `date_time` (containing `value` in AM/PM format,
         `iso8601`, and `unix_timestamp`) and `timezone` (containing
         IANA `name`, `code` abbreviation, and `utc_offset`).
     """
-    tz = (
-        ZoneInfo(time_zone) if time_zone else datetime.now().astimezone().tzinfo
-    )
+    if time_zone:
+        tz = _resolve_timezone(time_zone)
+        if tz is None:
+            return {
+                "error": (
+                    f"Unknown timezone: '{time_zone}'. "
+                    "Use an IANA name (e.g. "
+                    "'America/New_York') or a common "
+                    "abbreviation (e.g. 'PST', 'EST')."
+                )
+            }
+    else:
+        tz = datetime.now().astimezone().tzinfo
+
     now = datetime.now(tz)
+    iana_name = tz.key if hasattr(tz, "key") else str(tz)
 
     return {
         "date_time": {
@@ -75,8 +165,8 @@ def current(time_zone: str = "") -> dict[str, Any]:
             "unix_timestamp": now.timestamp(),
         },
         "timezone": {
-            "name": _get_local_iana_timezone(),
-            "code": time_zone if time_zone else str(tz),
+            "name": iana_name,
+            "code": now.strftime("%Z"),
             "utc_offset": now.strftime("%z"),
         },
     }
