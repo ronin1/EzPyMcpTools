@@ -9,6 +9,29 @@ _NWS_URL = "https://forecast.weather.gov/MapClick.php?lat={lat}&lon={lon}"
 
 _USER_AGENT = "python-mcp-tools/1.0"
 
+# Countries that officially use Fahrenheit.
+# Keyed by alpha-2; alpha-3 mapped below.
+_FAHRENHEIT_ALPHA2 = {
+    "US",  # United States
+    "BS",  # Bahamas
+    "KY",  # Cayman Islands
+    "LR",  # Liberia
+    "PW",  # Palau
+    "FM",  # Micronesia
+    "MH",  # Marshall Islands
+}
+
+# ISO 3166-1 alpha-3 → alpha-2 for Fahrenheit countries.
+_ALPHA3_TO_ALPHA2: dict[str, str] = {
+    "USA": "US",
+    "BHS": "BS",
+    "CYM": "KY",
+    "LBR": "LR",
+    "PLW": "PW",
+    "FSM": "FM",
+    "MHL": "MH",
+}
+
 
 # ── temperature helpers ──────────────────────────────
 
@@ -62,7 +85,7 @@ def _prefer_celsius() -> bool:
     loc = locale.getlocale()[0] or ""
     if "_" in loc:
         country = loc.split("_")[1][:2].upper()
-        return country != "US"
+        return country not in _FAHRENHEIT_ALPHA2
     return False
 
 
@@ -306,4 +329,31 @@ def current_with_forecast(
         "current": current,
         "forecast": forecast,
         "unit": "celsius" if celsius else "fahrenheit",
+    }
+
+
+def temperature_unit_for_country(
+    country_code: str,
+) -> dict[str, str]:
+    """Get the default temperature unit for a country.
+
+    Args:
+        country_code: ISO 3166-1 alpha-2 (e.g. "US") or
+              alpha-3 (e.g. "USA") country code.
+              Case insensitive.
+
+    Returns:
+        Dict with `country_code` and `default_unit`
+        ("celsius" or "fahrenheit").
+    """
+    upper = country_code.strip().upper()
+
+    # Normalize alpha-3 to alpha-2
+    if len(upper) == 3:
+        upper = _ALPHA3_TO_ALPHA2.get(upper, upper)
+
+    unit = "fahrenheit" if upper in _FAHRENHEIT_ALPHA2 else "celsius"
+    return {
+        "country_code": upper,
+        "default_unit": unit,
     }

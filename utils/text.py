@@ -1,9 +1,9 @@
 """Accurate tool for text analysis and manipulation utilities."""
 
-from typing import Any, Dict
+from typing import Any
 
 
-def words_count(text: str) -> Dict[str, Any]:
+def words_count(text: str) -> dict[str, Any]:
     """Count the number of words in a text string.
 
     Args:
@@ -15,7 +15,7 @@ def words_count(text: str) -> Dict[str, Any]:
     return {"words": len(text.split())}
 
 
-def characters_count(text: str) -> Dict[str, Any]:
+def characters_count(text: str) -> dict[str, Any]:
     """Count the number of characters in a text string.
 
     Args:
