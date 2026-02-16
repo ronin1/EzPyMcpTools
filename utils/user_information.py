@@ -66,7 +66,7 @@ def _ask_user(
 
         if field == "addresss":
             print(
-                f"\n{field} (enter one address per line, blank line to finish):"
+                f"\n{field} (enter one address per line, blank line to stop):"
             )
             addresses: list[str] = []
             while True:
