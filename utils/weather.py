@@ -44,42 +44,86 @@ def _f_to_c(fahrenheit: float) -> float:
 def _prefer_celsius() -> bool:
     """Check if the system prefers Celsius.
 
-    On macOS, reads AppleTemperatureUnit first, then
-    falls back to AppleMeasurementUnits, then locale.
+    Detection order:
+      1. macOS: AppleTemperatureUnit / AppleMeasurementUnits
+      2. Linux: LC_MEASUREMENT or GNOME/KDE settings
+      3. Fallback: locale country code
     """
-    try:
-        r = subprocess.run(
-            [
-                "defaults",
-                "read",
-                "NSGlobalDomain",
-                "AppleTemperatureUnit",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=5,
-            check=False,
-        )
-        if r.returncode == 0:
-            return r.stdout.strip() == "Celsius"
+    import platform
 
-        r = subprocess.run(
-            [
-                "defaults",
-                "read",
-                "NSGlobalDomain",
-                "AppleMeasurementUnits",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=5,
-            check=False,
-        )
-        if r.returncode == 0:
-            return r.stdout.strip() == "Centimeters"
-    except OSError:
-        pass
+    os_name = platform.system()
 
+    # ── macOS ────────────────────────────────────────
+    if os_name == "Darwin":
+        try:
+            r = subprocess.run(
+                [
+                    "defaults",
+                    "read",
+                    "NSGlobalDomain",
+                    "AppleTemperatureUnit",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+            if r.returncode == 0:
+                return r.stdout.strip() == "Celsius"
+
+            r = subprocess.run(
+                [
+                    "defaults",
+                    "read",
+                    "NSGlobalDomain",
+                    "AppleMeasurementUnits",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+            if r.returncode == 0:
+                return r.stdout.strip() == "Centimeters"
+        except OSError:
+            pass
+
+    # ── Linux ────────────────────────────────────────
+    if os_name == "Linux":
+        import os
+
+        # LC_MEASUREMENT=en_US.UTF-8 → extract country
+        lc = os.environ.get(
+            "LC_MEASUREMENT",
+            os.environ.get("LC_ALL", ""),
+        )
+        if "_" in lc:
+            country = lc.split("_")[1][:2].upper()
+            return country not in _FAHRENHEIT_ALPHA2
+
+        # GNOME: gsettings (org.gnome.system.locale)
+        try:
+            r = subprocess.run(
+                [
+                    "gsettings",
+                    "get",
+                    "org.gnome.system.locale",
+                    "region",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+            if r.returncode == 0:
+                val = r.stdout.strip().strip("'\"")
+                if "_" in val:
+                    country = val.split("_")[1][:2].upper()
+                    return country not in _FAHRENHEIT_ALPHA2
+        except OSError:
+            pass
+
+    # ── Fallback: locale country code ────────────────
     import locale
 
     loc = locale.getlocale()[0] or ""
