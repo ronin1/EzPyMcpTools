@@ -35,7 +35,7 @@ After pulling this project from GitHub:
 ![LM Studio Screenshot](./md_img/ml_studio_screenshot.png)
 
 - Go to [lmstudio.ai](https://lmstudio.ai) & download the UI tool
-- Use any model that supports tool use. Currently (Feb 7th, 2026), the author's favorite model is [Mistral 3](https://lmstudio.ai/models/ministral) or [Gemma 3](https://lmstudio.ai/models/gemma-3) provided that you have enough VRAM. Any model with tool use would work.
+- Use any model that supports tool use. Currently (Feb 7th, 2026), the author's favorite model is [Mistral 3](https://lmstudio.ai/models/ministral), [GPT-OSS 20B](https://lmstudio.ai/models/openai/gpt-oss-20b) or [GLM Flash](https://lmstudio.ai/models/zai-org/glm-4.7-flash) provided that you have enough VRAM & want the extra speed. Any model with tool use would work.
 - At the time of this writing, the author uses a Mac Book Pro; equiped with an M4 Max Chip, embeded with 64Gb of Unified RAM. Performance for [Mistral-Small-2509 (MLX) 4bit](https://lmstudio.ai/models/mistralai/magistral-small-2509) was decent after it loaded. Should work with any M series Apple machine with 32G RAM or more.
 - Once the model finishes downloading, load it up in a new chat & click on the 🔨 (hammer icon) to configure a custom MCP server & paste in the MCP configuration from `make setup` (or `make mcp_config`); should look like this:
 
