@@ -58,11 +58,11 @@ After pulling this project from GitHub:
 - Adding the following to `System Prompt` seems to help with clarity:
 
 ```txt
-Retry the prompt up to 5 times on failure and no more.
+Retry the prompt up to 3 times on failure and no more.
 Prefer available tool for better accuracy. 
 Response with `I don't know the answer` if your confidence is lower than 70%.
-Always write date time in regular American English format & AM/PM.
 Give short & concise answers, no emojis.
+If the same question is asked, reprocess from scratch, do not use previous results or cache.
 Use ezpy-tool `user_information__personal_data` to get current user info.
 ```
 
