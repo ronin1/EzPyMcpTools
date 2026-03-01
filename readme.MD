@@ -95,6 +95,12 @@ By choosing **Ollama**, we assume you know what you're doing:
 make docker-build
 ```
 
+- Run Docker smoke tests across all tools:
+
+```bash
+make docker-test
+```
+
 - Run the MCP server in `stdio` mode from Docker:
 
 ```bash
