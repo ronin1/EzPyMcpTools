@@ -88,7 +88,7 @@ def _compute_age(birthday: str) -> int:
     today = date.today()
     return (
         today.year
-        - born.year
+_REQUIRED_FIELDS = ["birthday", "email", "phone", "addresss"]
         - ((today.month, today.day) < (born.month, born.day))
     )
 
