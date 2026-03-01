@@ -55,6 +55,8 @@ config:
 		PWD="$(CURDIR)" envsubst < lmstudio.cfg.json
 
 lint:
+	@uv run isort . --profile black --line-length 80
+	@uv run black . --line-length 80
 	@uv run ruff check --fix .
 	@uv run ty check .
 	@uv run ruff format .

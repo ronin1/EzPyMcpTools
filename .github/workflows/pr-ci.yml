@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   lint-and-docker-test:
@@ -52,3 +53,21 @@ jobs:
 
       - name: Run Docker tests
         run: make docker-test
+
+      - name: Publish image to GHCR (main only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GHCR_REPO: ghcr.io/${{ github.repository_owner }}/ezpy-tools
+          IMAGE_SHA: ${{ github.sha }}
+        run: |
+          GHCR_REPO_LOWER="$(echo "${GHCR_REPO}" | tr '[:upper:]' '[:lower:]')"
+          SHORT_SHA="$(echo "${IMAGE_SHA}" | cut -c1-12)"
+
+          echo "${{ secrets.GITHUB_TOKEN }}" \
+            | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+          docker tag ezpy-tools:alpine "${GHCR_REPO_LOWER}:latest"
+          docker tag ezpy-tools:alpine "${GHCR_REPO_LOWER}:sha-${SHORT_SHA}"
+
+          docker push "${GHCR_REPO_LOWER}:latest"
+          docker push "${GHCR_REPO_LOWER}:sha-${SHORT_SHA}"

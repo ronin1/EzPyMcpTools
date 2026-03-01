@@ -55,9 +55,7 @@ def _print_namespace_functions(
     and docstrings."""
     for name, func in funcs.items():
         sig = inspect.signature(func)
-        doc = (
-            (func.__doc__ or "").strip().split("\n")[0]  # type: ignore
-        )
+        doc = (func.__doc__ or "").strip().split("\n")[0]
         print(f"  [func] {ns}__{name}{sig}")
         if doc:
             print(f"         {doc}")
@@ -130,7 +128,7 @@ def main() -> None:
         else:
             typed_args.append(arg)
 
-    result = func(*typed_args)  # type: ignore
+    result = func(*typed_args)
     print(json.dumps(result, indent=2))
 
 
