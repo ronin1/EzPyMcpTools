@@ -1,6 +1,7 @@
 """Accurate tool for text analysis and manipulation utilities."""
 
 import re
+from functools import lru_cache
 from typing import Any
 
 import snowballstemmer
@@ -41,8 +42,14 @@ def _stem_word(word: str, algorithm: str) -> str | None:
     """Stem a word using the requested algorithm."""
     if algorithm.lower() != "snowball":
         return None
-    stemmer = snowballstemmer.stemmer("english")
+    stemmer = _get_snowball_stemmer("english")
     return stemmer.stemWord(word)
+
+
+@lru_cache(maxsize=8)
+def _get_snowball_stemmer(language: str) -> Any:
+    """Return a cached Snowball stemmer instance for a language."""
+    return snowballstemmer.stemmer(language)
 
 
 def words_count(text: str) -> dict[str, Any]:
@@ -125,7 +132,7 @@ def nlp_tokenize(
     text: str,
     algorithm: str = "snowball",
 ) -> dict[str, Any]:
-    """Tokenize text into stemmed words with frequencies.
+    """Tokenize text into normalized stemmed words.
 
     This function:
       - normalizes case
@@ -139,7 +146,7 @@ def nlp_tokenize(
 
     Returns:
         Dict containing original text, a `tokens` array of stemmed
-        words, and `token_count` as total number of tokens.
+        words, and `token_count` as total number of stemmed tokens.
         Returns an error dict for unsupported algorithms.
     """
     if algorithm.lower() != "snowball":
