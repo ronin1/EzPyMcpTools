@@ -1,5 +1,7 @@
 # Easy Python MCP Tools
 
+[![PR CI (main)](https://github.com/ronin1/EzPyMcpTools/actions/workflows/pr-ci.yml/badge.svg?branch=main)](https://github.com/ronin1/EzPyMcpTools/actions/workflows/pr-ci.yml)
+
 - An easy way to create a bunch of custom tools for a Model Context Protocol (MCP) server.
 - Currently, this project is used as a local MCP server for [LmStudio](https://lmstudio.ai) (or [Ollama](https://docs.ollama.com)); primarily for use with open-source models.
 - It allows you to write plain Python scripts & those will show up as proper agent tools (with name space & instructions).
