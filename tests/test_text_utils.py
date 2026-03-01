@@ -26,3 +26,9 @@ def test_llm_tokenize_gpt2_path() -> None:
     assert payload["tokenizer_backend"] == "tiktoken"
     assert payload["token_count"] == len(payload["tokens"])
     assert payload["token_count"] == len(payload["token_ids"])
+
+
+def test_llm_tokenize_gpt2_case_insensitive() -> None:
+    payload = text_utils.llm_tokenize("Hello world", algorithm="GPT2")
+    assert payload["tokenizer_backend"] == "tiktoken"
+    assert payload["algorithm"] == "gpt2"

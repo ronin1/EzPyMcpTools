@@ -205,15 +205,16 @@ def llm_tokenize(
         Returns an error dict for unsupported encodings.
     """
     encoding_name = algorithm.strip() or "mistral_v3"
+    normalized_name = encoding_name.lower()
 
-    if encoding_name.lower().startswith("mistral_"):
+    if normalized_name.startswith("mistral_"):
         mistral_tokenizer, special_token_policy = _get_mistral_components()
         mistral_factories = {
             "mistral_v1": mistral_tokenizer.v1,
             "mistral_v2": mistral_tokenizer.v2,
             "mistral_v3": mistral_tokenizer.v3,
         }
-        factory = mistral_factories.get(encoding_name.lower())
+        factory = mistral_factories.get(normalized_name)
         if factory is None:
             return {
                 "text": text,
@@ -236,7 +237,7 @@ def llm_tokenize(
         ]
         return {
             "text": text,
-            "algorithm": encoding_name.lower(),
+            "algorithm": normalized_name,
             "tokenizer_backend": "mistral_common",
             "tokens": tokens,
             "token_ids": token_ids,
@@ -245,7 +246,8 @@ def llm_tokenize(
 
     tiktoken = _get_tiktoken_module()
     try:
-        enc = tiktoken.get_encoding(encoding_name)
+        # tiktoken encoding names are case-sensitive; normalize for UX.
+        enc = tiktoken.get_encoding(normalized_name)
     except ValueError:
         return {
             "text": text,
@@ -260,7 +262,7 @@ def llm_tokenize(
     tokens = [enc.decode([token_id]) for token_id in token_ids]
     return {
         "text": text,
-        "algorithm": encoding_name,
+        "algorithm": normalized_name,
         "tokenizer_backend": "tiktoken",
         "tokens": tokens,
         "token_ids": token_ids,
