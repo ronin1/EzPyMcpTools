@@ -42,8 +42,9 @@ def _get_full_name() -> str:
         pass
 
     # 3) Linux NSS database lookup as fallback.
-    user = _get_username()
+    user = ""
     try:
+        user = _get_username()
         result = subprocess.run(
             ["getent", "passwd", user],
             capture_output=True,
@@ -57,11 +58,16 @@ def _get_full_name() -> str:
                 full_name = parts[4].split(",", 1)[0].strip()
                 if full_name:
                     return full_name
-    except OSError:
+    except (OSError, subprocess.CalledProcessError):
         pass
 
     # 4) Last resort.
-    return user
+    if user:
+        return user
+    try:
+        return _get_username()
+    except (OSError, subprocess.CalledProcessError):
+        return ""
 
 
 def _get_username() -> str:
@@ -267,5 +273,8 @@ def personal_data() -> dict[str, Any]:
         "long_name": resolved_long_name,
     }
     info.update(data)
+    # Preserve computed/normalized identity fields over raw file values.
+    info["name"] = resolved_name
+    info["long_name"] = resolved_long_name
     info["age"] = _compute_age(str(info["birthday"]))
     return info
