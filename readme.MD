@@ -1,6 +1,6 @@
 # Easy Python MCP Tools
 
-[![PR CI (main)](https://github.com/ronin1/EzPyMcpTools/actions/workflows/pr-ci.yml/badge.svg?branch=main)](https://github.com/ronin1/EzPyMcpTools/actions/workflows/pr-ci.yml)
+[![PR CI](https://github.com/ronin1/EzPyMcpTools/actions/workflows/pr-ci.yml/badge.svg)](https://github.com/ronin1/EzPyMcpTools/actions/workflows/pr-ci.yml) [![Dependabot Updates](https://github.com/ronin1/EzPyMcpTools/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/ronin1/EzPyMcpTools/actions/workflows/dependabot/dependabot-updates) [![Copilot code review](https://github.com/ronin1/EzPyMcpTools/actions/workflows/copilot-pull-request-reviewer/copilot-pull-request-reviewer/badge.svg)](https://github.com/ronin1/EzPyMcpTools/actions/workflows/copilot-pull-request-reviewer/copilot-pull-request-reviewer)
 
 - An easy way to create a bunch of custom tools for a Model Context Protocol (MCP) server.
 - Currently, this project is used as a local MCP server for [LmStudio](https://lmstudio.ai) (or [Ollama](https://docs.ollama.com)); primarily for use with open-source models.
