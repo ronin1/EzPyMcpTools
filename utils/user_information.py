@@ -88,13 +88,14 @@ def _compute_age(birthday: str) -> int:
     today = date.today()
     return (
         today.year
-_REQUIRED_FIELDS = ["birthday", "email", "phone", "addresss"]
+        - born.year
         - ((today.month, today.day) < (born.month, born.day))
     )
 
 
 _CONFIG_PATH = pathlib.Path(__file__).parent.parent / "user.data.json"
 _REQUIRED_FIELDS = ["name", "birthday", "email", "phone", "addresss"]
+_REQUIRED_FIELDS_NO_NAME = [f for f in _REQUIRED_FIELDS if f != "name"]
 
 
 def _is_missing(field: str, value: Any) -> bool:
@@ -233,14 +234,14 @@ def personal_data() -> dict[str, Any]:
         `phone`, and `addresss`.
     """
     if not _CONFIG_PATH.exists():
-        missing = _REQUIRED_FIELDS
+        missing = _REQUIRED_FIELDS_NO_NAME
         data: dict[str, Any] = {}
     else:
         with open(_CONFIG_PATH, encoding="utf-8") as f:
             data = json.load(f)
         missing = [
             f
-            for f in _REQUIRED_FIELDS
+            for f in _REQUIRED_FIELDS_NO_NAME
             if f not in data or _is_missing(f, data.get(f))
         ]
 

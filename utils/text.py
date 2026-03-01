@@ -4,11 +4,6 @@ import re
 from functools import lru_cache
 from typing import Any
 
-import snowballstemmer
-import tiktoken
-from mistral_common.tokens.tokenizers.base import SpecialTokenPolicy
-from mistral_common.tokens.tokenizers.mistral import MistralTokenizer
-
 _STOP_WORDS = {
     "a",
     "an",
@@ -49,7 +44,26 @@ def _stem_word(word: str, algorithm: str) -> str | None:
 @lru_cache(maxsize=8)
 def _get_snowball_stemmer(language: str) -> Any:
     """Return a cached Snowball stemmer instance for a language."""
+    import snowballstemmer
+
     return snowballstemmer.stemmer(language)
+
+
+@lru_cache(maxsize=1)
+def _get_tiktoken_module() -> Any:
+    """Load and cache the tiktoken module lazily."""
+    import tiktoken
+
+    return tiktoken
+
+
+@lru_cache(maxsize=1)
+def _get_mistral_components() -> tuple[Any, Any]:
+    """Load and cache Mistral tokenizer components lazily."""
+    from mistral_common.tokens.tokenizers.base import SpecialTokenPolicy
+    from mistral_common.tokens.tokenizers.mistral import MistralTokenizer
+
+    return MistralTokenizer, SpecialTokenPolicy
 
 
 def words_count(text: str) -> dict[str, Any]:
@@ -192,10 +206,11 @@ def llm_tokenize(
     encoding_name = algorithm.strip() or "mistral_v3"
 
     if encoding_name.lower().startswith("mistral_"):
+        mistral_tokenizer, special_token_policy = _get_mistral_components()
         mistral_factories = {
-            "mistral_v1": MistralTokenizer.v1,
-            "mistral_v2": MistralTokenizer.v2,
-            "mistral_v3": MistralTokenizer.v3,
+            "mistral_v1": mistral_tokenizer.v1,
+            "mistral_v2": mistral_tokenizer.v2,
+            "mistral_v3": mistral_tokenizer.v3,
         }
         factory = mistral_factories.get(encoding_name.lower())
         if factory is None:
@@ -214,7 +229,7 @@ def llm_tokenize(
         tokens = [
             base_tokenizer.decode(
                 [token_id],
-                special_token_policy=SpecialTokenPolicy.IGNORE,
+                special_token_policy=special_token_policy.IGNORE,
             )
             for token_id in token_ids
         ]
@@ -227,6 +242,7 @@ def llm_tokenize(
             "token_count": len(token_ids),
         }
 
+    tiktoken = _get_tiktoken_module()
     try:
         enc = tiktoken.get_encoding(encoding_name)
     except ValueError:
