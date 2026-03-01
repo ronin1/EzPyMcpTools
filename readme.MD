@@ -81,11 +81,57 @@ By choosing **Ollama**, we assume you know what you're doing:
 
 ### Other Commercial Models & Agents
 
-- Being a standard MCP server, it __should__ be compatible with all agents & models (including commercial ones).
+- Being a standard MCP server, it **should** be compatible with all agents & models (including commercial ones).
 - Currently, this MCP server is being built for local run via `stdio` transport.  
 - You can start it with `http` or `sse` transport by running: `uv run python mcp_server.py --transport http`
 - *WARNING:* This MCP server has no authentication built in currently. Please do not run in `http` or `sse` protocol & expose it to the open web. You *will* get hacked.
 - See Anthropic [MCP specs](https://modelcontextprotocol.io/specification/2025-06-18/basic) for more info.
+
+### Docker (Alpine) for FastMCP `stdio`
+
+- Build the image:
+
+```bash
+make docker-build
+```
+
+- Run the MCP server in `stdio` mode from Docker:
+
+```bash
+docker run --rm -i \
+  -v "$PWD/user.data.json:/app/user.data.json:ro" \
+  ezpy-tools:alpine
+```
+
+- Example MCP config (LmStudio/Ollama host) for Docker-based `stdio`:
+
+```json
+{
+  "mcpServers": {
+    "ezpy_tools_docker": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-v",
+        "/absolute/path/to/tools/user.data.json:/app/user.data.json:ro",
+        "ezpy-tools:alpine"
+      ]
+    }
+  }
+}
+```
+
+- Run `./tools` directly in Docker (example: current time):
+
+```bash
+docker run --rm \
+  -v "$PWD/user.data.json:/app/user.data.json:ro" \
+  --entrypoint ./tools \
+  ezpy-tools:alpine \
+  datetime__current America/Los_Angeles
+```
 
 ## Writing a new Tool
 

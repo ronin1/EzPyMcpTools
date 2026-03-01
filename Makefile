@@ -4,7 +4,7 @@ unexport VIRTUAL_ENV
 OLLAMA_MODEL ?= qwen3-vl:8b
 #OLLAMA_MODEL ?= llama4:16x17b
 
-.PHONY: setup py_req user_info run test mcp_config config inspector lint
+.PHONY: setup py_req user_info run test mcp_config config inspector lint docker-build
 
 setup: py_req user_info mcp_config
 
@@ -52,7 +52,11 @@ config:
 
 lint:
 	@uv run ruff check --fix .
+	@uv run ty check .
 	@uv run ruff format .
 
 inspector:
 	@npx @modelcontextprotocol/inspector
+
+docker-build:
+	@docker build -t ezpy-tools:alpine .
