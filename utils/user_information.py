@@ -247,5 +247,12 @@ def personal_data() -> dict[str, Any]:
     # Preserve computed/normalized identity fields over raw file values.
     info["name"] = resolved_name
     info["long_name"] = resolved_long_name
-    info["age"] = _compute_age(str(info["birthday"]))
+    try:
+        info["age"] = _compute_age(str(info["birthday"]))
+    except ValueError as exc:
+        raise ValueError(
+            f"Invalid 'birthday' format in {_CONFIG_PATH}. "
+            "Expected ISO format 'YYYY-MM-DD'. "
+            "Run 'make user_info' to correct it."
+        ) from exc
     return info
