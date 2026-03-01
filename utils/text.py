@@ -161,6 +161,7 @@ def nlp_tokenize(
     Returns:
         Dict containing original text, a `tokens` array of stemmed
         words, and `token_count` as total number of stemmed tokens.
+        This output does not include per-token frequency counts.
         Returns an error dict for unsupported algorithms.
     """
     if algorithm.lower() != "snowball":

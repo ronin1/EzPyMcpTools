@@ -94,8 +94,7 @@ def _compute_age(birthday: str) -> int:
 
 
 _CONFIG_PATH = pathlib.Path(__file__).parent.parent / "user.data.json"
-_REQUIRED_FIELDS = ["name", "birthday", "email", "phone", "addresss"]
-_REQUIRED_FIELDS_NO_NAME = [f for f in _REQUIRED_FIELDS if f != "name"]
+_REQUIRED_FIELDS = ["birthday", "email", "phone", "addresss"]
 
 
 def _is_missing(field: str, value: Any) -> bool:
@@ -134,36 +133,7 @@ def _ask_user(
         if not _is_missing(field, data.get(field)):
             continue
 
-        if field == "name":
-            print("\nname:")
-            existing_name = data.get("name", {})
-            if isinstance(existing_name, dict):
-                first_default = str(existing_name.get("first", "")).strip()
-                middle_default = str(existing_name.get("middle", "")).strip()
-                last_default = str(existing_name.get("last", "")).strip()
-            else:
-                first_default = str(existing_name or "").strip()
-                middle_default = ""
-                last_default = ""
-
-            first = (
-                input(f"  first [{first_default}]: ").strip() or first_default
-            )
-            middle = (
-                input(f"  middle [{middle_default}]: ").strip()
-                or middle_default
-            )
-            last = input(f"  last [{last_default}]: ").strip() or last_default
-
-            if not any([first, middle, last]):
-                first = _get_username()
-
-            data[field] = {
-                "first": first,
-                "middle": middle,
-                "last": last,
-            }
-        elif field == "addresss":
+        if field == "addresss":
             print(
                 f"\n{field} (enter one address per line, blank line to stop):"
             )
@@ -234,14 +204,14 @@ def personal_data() -> dict[str, Any]:
         `phone`, and `addresss`.
     """
     if not _CONFIG_PATH.exists():
-        missing = _REQUIRED_FIELDS_NO_NAME
+        missing = _REQUIRED_FIELDS
         data: dict[str, Any] = {}
     else:
         with open(_CONFIG_PATH, encoding="utf-8") as f:
             data = json.load(f)
         missing = [
             f
-            for f in _REQUIRED_FIELDS_NO_NAME
+            for f in _REQUIRED_FIELDS
             if f not in data or _is_missing(f, data.get(f))
         ]
 
