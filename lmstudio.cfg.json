@@ -1,13 +1,15 @@
 {
   "mcpServers": {
-    "ezpy_tools": {
-      "command": "uv",
+    "ezpy_tools_docker": {
+      "command": "docker",
       "args": [
         "run",
-        "python",
-        "mcp_server.py"
-      ],
-      "cwd": "$PWD"
+        "--rm",
+        "-i",
+        "-v",
+        "$PWD/user.data.json:/app/user.data.json:ro",
+        "ezpy-tools:alpine"
+      ]
     }
   }
 }

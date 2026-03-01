@@ -16,14 +16,15 @@
 - This is what this project aims to do: Make tool creation simple to empower OSS models.
 - Try asking the question `What's the current time?` Before you enable these tools. The LLM can't answer. After enabling this tool, you can even ask things like: `What's the current time in Hawaii?`
 
-## General Setup & Development
+## Recommended Setup (Docker)
 
 After pulling this project from GitHub:
 
-- Ensure that you have Python 3.12+ installed
-- In your console, run `make setup`, this will install all required Python packages & prompt you for your basic personal information & save it under `./user.data.json`
-- Don't worry, `*.data.json` files are already in [.gitignore](./.gitignore#L65) & will never be checked in (on accident or on purpose)
-- `make setup` will also call `make mcp_config` which prints the required configuration for LmStudio & Ollama.
+- Build and run with Docker (recommended) to avoid host Python/env differences.
+- Create `./user.data.json` first (you can copy from `./user.data.json.example`).
+- Build the image with `make docker-build`.
+- Print the Docker MCP config with `make mcp_config` and paste it into your MCP host (LM Studio/Ollama/McpHost).
+- Don't worry, `*.data.json` files are already in [.gitignore](./.gitignore#L65) & will never be checked in (on accident or on purpose).
 - You can also start from `./user.data.json.example` and copy it to `./user.data.json`:
 
 ```json
@@ -56,15 +57,21 @@ After pulling this project from GitHub:
 - Go to [lmstudio.ai](https://lmstudio.ai) & download the UI tool
 - Use any model that supports tool use. Currently (Feb 7th, 2026), the author's favorite model is [Mistral 3](https://lmstudio.ai/models/ministral), [GPT-OSS 20B](https://lmstudio.ai/models/openai/gpt-oss-20b) or [GLM Flash](https://lmstudio.ai/models/zai-org/glm-4.7-flash) provided that you have enough VRAM & want the extra speed. Any model with tool use would work.
 - At the time of this writing, the author uses a Mac Book Pro; equiped with an M4 Max Chip, embeded with 64Gb of Unified RAM. Performance for [Mistral-Small-2509 (MLX) 4bit](https://lmstudio.ai/models/mistralai/magistral-small-2509) was decent after it loaded. Should work with any M series Apple machine with 32G RAM or more.
-- Once the model finishes downloading, load it up in a new chat & click on the 🔨 (hammer icon) to configure a custom MCP server & paste in the MCP configuration from `make setup` (or `make mcp_config`); should look like this:
+- Once the model finishes downloading, load it up in a new chat & click on the 🔨 (hammer icon) to configure a custom MCP server & paste in the MCP configuration from `make mcp_config` (Docker sample); should look like this:
 
 ```json
 {
   "mcpServers": {
-    "py_tools": {
-      "command": "uv",
-      "args": ["run", "python", "mcp_server.py"],
-      "cwd": "~/{repo-dir}/tools"
+    "ezpy_tools_docker": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-v",
+        "/absolute/path/to/tools/user.data.json:/app/user.data.json:ro",
+        "ezpy-tools:alpine"
+      ]
     }
   }
 }
@@ -104,6 +111,8 @@ By choosing **Ollama**, we assume you know what you're doing:
 - See Anthropic [MCP specs](https://modelcontextprotocol.io/specification/2025-06-18/basic) for more info.
 
 ### Docker (Alpine) for FastMCP `stdio`
+
+- This is the recommended way to run this project in production-like local usage.
 
 - Build the image:
 
@@ -153,6 +162,12 @@ docker run --rm \
   ezpy-tools:alpine \
   uv run python utils.py datetime__current America/Los_Angeles
 ```
+
+### Local Python Setup (Development)
+
+- Use this only if you are actively developing/debugging tool code.
+- Ensure Python 3.12+ is installed.
+- Run `make setup` to install dependencies, create/update `user.data.json`, and print MCP config.
 
 ## Writing a new Tool
 
