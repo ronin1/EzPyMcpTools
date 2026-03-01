@@ -4,6 +4,9 @@ import re
 from typing import Any
 
 import snowballstemmer
+import tiktoken
+from mistral_common.tokens.tokenizers.base import SpecialTokenPolicy
+from mistral_common.tokens.tokenizers.mistral import MistralTokenizer
 
 _STOP_WORDS = {
     "a",
@@ -159,4 +162,83 @@ def nlp_tokenize(
         "algorithm": "snowball",
         "tokens": stemmed_tokens,
         "token_count": len(stemmed_tokens),
+    }
+
+
+def llm_tokenize(
+    text: str,
+    algorithm: str = "mistral_v3",
+) -> dict[str, Any]:
+    """Tokenize text using Mistral or tiktoken tokenizers.
+
+    Args:
+        text: Input text to tokenize.
+        algorithm: Tokenizer algorithm. Defaults to `mistral_v3`.
+            - `mistral_*` values use `MistralTokenizer`.
+            - other values use `tiktoken.get_encoding(...)`.
+
+    Returns:
+        Dict containing original text, tokenizer metadata, token ids,
+        decoded token strings, and token count.
+        Returns an error dict for unsupported encodings.
+    """
+    encoding_name = algorithm.strip() or "mistral_v3"
+
+    if encoding_name.lower().startswith("mistral_"):
+        mistral_factories = {
+            "mistral_v1": MistralTokenizer.v1,
+            "mistral_v2": MistralTokenizer.v2,
+            "mistral_v3": MistralTokenizer.v3,
+        }
+        factory = mistral_factories.get(encoding_name.lower())
+        if factory is None:
+            return {
+                "text": text,
+                "error": (
+                    f"Unsupported algorithm '{algorithm}'. "
+                    "Supported mistral algorithms: "
+                    "mistral_v1, mistral_v2, mistral_v3"
+                ),
+            }
+
+        tokenizer = factory()
+        base_tokenizer = tokenizer.instruct_tokenizer.tokenizer
+        token_ids = base_tokenizer.encode(text, bos=False, eos=False)
+        tokens = [
+            base_tokenizer.decode(
+                [token_id],
+                special_token_policy=SpecialTokenPolicy.IGNORE,
+            )
+            for token_id in token_ids
+        ]
+        return {
+            "text": text,
+            "algorithm": encoding_name.lower(),
+            "tokenizer_backend": "mistral_common",
+            "tokens": tokens,
+            "token_ids": token_ids,
+            "token_count": len(token_ids),
+        }
+
+    try:
+        enc = tiktoken.get_encoding(encoding_name)
+    except ValueError:
+        return {
+            "text": text,
+            "error": (
+                f"Unsupported algorithm '{algorithm}'. "
+                "Use a valid tiktoken encoding name."
+            ),
+            "available_algorithms": sorted(tiktoken.list_encoding_names()),
+        }
+
+    token_ids = enc.encode(text)
+    tokens = [enc.decode([token_id]) for token_id in token_ids]
+    return {
+        "text": text,
+        "algorithm": encoding_name,
+        "tokenizer_backend": "tiktoken",
+        "tokens": tokens,
+        "token_ids": token_ids,
+        "token_count": len(token_ids),
     }

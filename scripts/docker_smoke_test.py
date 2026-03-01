@@ -61,6 +61,8 @@ CASES: list[Case] = [
     Case("text__show_characters", ["hello"]),
     Case("text__word_stem", ["running"]),
     Case("text__nlp_tokenize", ["The running and running"]),
+    Case("text__llm_tokenize", ["Hello world"]),
+    Case("text__llm_tokenize", ["Hello world", "gpt2"]),
     Case(
         "user_information__personal_data",
         [],
@@ -153,6 +155,25 @@ def validate_payload(name: str, payload: dict[str, object]) -> tuple[bool, str]:
             return False, "unexpected `tokens` value for nlp_tokenize"
         if payload.get("token_count") != 2:
             return False, "unexpected `token_count` value for nlp_tokenize"
+
+    if name == "text__llm_tokenize":
+        algorithm = payload.get("algorithm")
+        if algorithm not in {"mistral_v3", "gpt2"}:
+            return False, "unexpected `algorithm` value for llm_tokenize"
+        backend = payload.get("tokenizer_backend")
+        if algorithm == "mistral_v3" and backend != "mistral_common":
+            return False, "unexpected backend for mistral llm_tokenize"
+        if algorithm == "gpt2" and backend != "tiktoken":
+            return False, "unexpected backend for tiktoken llm_tokenize"
+        tokens = payload.get("tokens")
+        token_ids = payload.get("token_ids")
+        token_count = payload.get("token_count")
+        if not isinstance(tokens, list) or not tokens:
+            return False, "missing/empty `tokens` for llm_tokenize"
+        if not isinstance(token_ids, list) or not token_ids:
+            return False, "missing/empty `token_ids` for llm_tokenize"
+        if token_count != len(tokens) or token_count != len(token_ids):
+            return False, "invalid `token_count` for llm_tokenize"
 
     return True, "ok"
 
