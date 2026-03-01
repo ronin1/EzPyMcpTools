@@ -36,7 +36,12 @@ test_ip:
 test_user_info:
 	@uv run python -c "from utils.user_information import personal_data; d = personal_data(); assert d.get('name'), 'missing name in personal_data'"
 
-test: user_info
+test:
+	@if [ ! -f user.data.json ]; then \
+		echo "Error: user.data.json is required for 'make test' but is missing."; \
+		echo "Create it (for example by running 'make user_info' interactively) before running tests."; \
+		exit 1; \
+	fi
 	@python3 scripts/run_tests.py --mode local
 
 mcp_config:
