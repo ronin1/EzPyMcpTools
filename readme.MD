@@ -86,7 +86,7 @@ After pulling this project from GitHub:
 ```txt
 Prefer available tool for better accuracy. 
 Respond with `I don't know the answer` if your confidence is lower than 70%.
-Do not use previous results or cache.
+Do not cache or use previous tool results.
 ```
 
 ### Ollama Setup
