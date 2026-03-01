@@ -6,7 +6,11 @@ ENV UV_LINK_MODE=copy
 
 WORKDIR /app
 
-RUN apk add --no-cache tzdata
+RUN apk add --no-cache \
+    tzdata \
+    build-base \
+    cmake \
+    pkgconf
 RUN pip install --no-cache-dir uv
 
 COPY pyproject.toml uv.lock ./
