@@ -3,7 +3,6 @@
 import json
 import os
 import pathlib
-import pwd
 import subprocess
 from datetime import date
 from typing import Any
@@ -21,10 +20,12 @@ def _get_full_name() -> str:
     # 1) POSIX account metadata (works in most Unix environments,
     # including Alpine).
     try:
+        import pwd
+
         gecos = pwd.getpwuid(os.getuid()).pw_gecos.split(",", 1)[0].strip()
         if gecos:
             return gecos
-    except (KeyError, OSError, AttributeError):
+    except (ImportError, KeyError, OSError, AttributeError):
         pass
 
     # 2) macOS full name.
