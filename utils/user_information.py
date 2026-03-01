@@ -140,17 +140,13 @@ def _ask_user(
                 last_default = ""
 
             first = (
-                input(f"  first [{first_default}]: ").strip()
-                or first_default
+                input(f"  first [{first_default}]: ").strip() or first_default
             )
             middle = (
                 input(f"  middle [{middle_default}]: ").strip()
                 or middle_default
             )
-            last = (
-                input(f"  last [{last_default}]: ").strip()
-                or last_default
-            )
+            last = input(f"  last [{last_default}]: ").strip() or last_default
 
             if not any([first, middle, last]):
                 first = _get_username()

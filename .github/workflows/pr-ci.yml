@@ -1,0 +1,50 @@
+name: PR CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+jobs:
+  lint-and-docker-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Sync dependencies
+        run: uv sync --dev
+
+      - name: Run lint (auto-fix where possible)
+        run: make lint
+
+      - name: Commit lint fixes (if any)
+        run: |
+          if git diff --quiet; then
+            echo "No lint fixes to commit."
+            exit 0
+          fi
+
+          git add -A
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -m "chore(ci): apply lint auto-fixes"
+          git push
+
+      - name: Rename user data example for container test
+        run: mv user.data.json.example user.data.json
+
+      - name: Run Docker tests
+        run: make docker-test

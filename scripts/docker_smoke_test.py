@@ -8,6 +8,7 @@ import os
 import subprocess
 import sys
 from dataclasses import dataclass
+from typing import cast
 
 
 @dataclass(frozen=True)
@@ -110,9 +111,10 @@ def validate_payload(name: str, payload: dict[str, object]) -> tuple[bool, str]:
             return False, "missing `name` in personal_data output"
 
         if isinstance(user_name, dict):
-            first = str(user_name.get("first", "")).strip()
-            middle = str(user_name.get("middle", "")).strip()
-            last = str(user_name.get("last", "")).strip()
+            name_obj = cast(dict[str, object], user_name)
+            first = str(name_obj.get("first", "")).strip()
+            middle = str(name_obj.get("middle", "")).strip()
+            last = str(name_obj.get("last", "")).strip()
             if not any([first, middle, last]):
                 return False, "empty structured `name` object"
         elif not str(user_name).strip():
