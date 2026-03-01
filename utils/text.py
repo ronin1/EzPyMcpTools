@@ -31,3 +31,18 @@ def characters_count(text: str) -> dict[str, Any]:
             "excluding_spaces": len(text.replace(" ", "")),
         },
     }
+
+
+def show_characters(word: str) -> dict[str, Any]:
+    """Show each character from an input word/string.
+
+    Args:
+        word: The input word/string to split into characters.
+
+    Returns:
+        Dict with the original `word` and a `characters` array.
+    """
+    return {
+        "word": word,
+        "characters": list(word),
+    }

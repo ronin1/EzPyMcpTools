@@ -49,6 +49,7 @@ CASES: list[Case] = [
     Case("math__constants", []),
     Case("text__characters_count", ["hello world"]),
     Case("text__words_count", ["hello world from docker"]),
+    Case("text__show_characters", ["hello"]),
     Case("user_information__personal_data", []),
     Case("weather__temperature_unit_for_country", ["US"]),
     Case("weather__current_with_forecast", ["34.0522", "-118.2437"]),
@@ -100,6 +101,12 @@ def validate_payload(name: str, payload: dict[str, object]) -> tuple[bool, str]:
 
         if "age" not in payload:
             return False, "missing `age` in personal_data output"
+
+    if name == "text__show_characters":
+        if payload.get("word") != "hello":
+            return False, "unexpected `word` value for show_characters"
+        if payload.get("characters") != ["h", "e", "l", "l", "o"]:
+            return False, "unexpected `characters` array for show_characters"
 
     return True, "ok"
 
