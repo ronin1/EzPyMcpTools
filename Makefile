@@ -37,7 +37,7 @@ test_user_info:
 	@uv run python -c "from utils.user_information import personal_data; d = personal_data(); assert d.get('name'), 'missing name in personal_data'"
 
 test: user_info
-	@python3 scripts/docker_smoke_test.py
+	@python3 scripts/container_smoke_test.py
 
 mcp_config:
 	@echo '{'

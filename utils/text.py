@@ -2,6 +2,8 @@
 
 from typing import Any
 
+import snowballstemmer
+
 
 def words_count(text: str) -> dict[str, Any]:
     """Count the number of words in a text string.
@@ -45,4 +47,36 @@ def show_characters(word: str) -> dict[str, Any]:
     return {
         "word": word,
         "characters": list(word),
+    }
+
+
+def word_stem(
+    word: str,
+    algorithm: str = "snowball",
+) -> dict[str, Any]:
+    """Return a stemmed form of a word.
+
+    Args:
+        word: Input word to stem.
+        algorithm: Stemming algorithm to use. Defaults to
+            `snowball`.
+
+    Returns:
+        Dict with original `word` and its `stem`.
+        Returns an error dict for unsupported algorithms.
+    """
+    if algorithm.lower() != "snowball":
+        return {
+            "word": word,
+            "error": (
+                f"Unsupported algorithm '{algorithm}'. Supported: snowball"
+            ),
+        }
+
+    stemmer = snowballstemmer.stemmer("english")
+    stem = stemmer.stemWord(word)
+    return {
+        "word": word,
+        "stem": stem,
+        "algorithm": "snowball",
     }

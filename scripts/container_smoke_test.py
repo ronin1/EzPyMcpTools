@@ -50,6 +50,7 @@ CASES: list[Case] = [
     Case("text__characters_count", ["hello world"]),
     Case("text__words_count", ["hello world from docker"]),
     Case("text__show_characters", ["hello"]),
+    Case("text__word_stem", ["running"]),
     Case("user_information__personal_data", []),
     Case("weather__temperature_unit_for_country", ["US"]),
     Case("weather__current_with_forecast", ["34.0522", "-118.2437"]),
@@ -59,7 +60,7 @@ CASES: list[Case] = [
 def run_case(case: Case) -> tuple[bool, str]:
     """Run one case and verify output is a JSON object."""
     result = subprocess.run(
-        ["./tools", case.name, *case.args],
+        ["uv", "run", "python", "utils.py", case.name, *case.args],
         capture_output=True,
         text=True,
         check=False,
@@ -107,6 +108,12 @@ def validate_payload(name: str, payload: dict[str, object]) -> tuple[bool, str]:
             return False, "unexpected `word` value for show_characters"
         if payload.get("characters") != ["h", "e", "l", "l", "o"]:
             return False, "unexpected `characters` array for show_characters"
+
+    if name == "text__word_stem":
+        if payload.get("word") != "running":
+            return False, "unexpected `word` value for word_stem"
+        if payload.get("stem") != "run":
+            return False, "unexpected `stem` value for word_stem"
 
     return True, "ok"
 

@@ -143,14 +143,13 @@ docker run --rm -i \
 }
 ```
 
-- Run `./tools` directly in Docker (example: current time):
+- Run a tool directly in Docker (example: current time):
 
 ```bash
 docker run --rm \
   -v "$PWD/user.data.json:/app/user.data.json:ro" \
-  --entrypoint ./tools \
   ezpy-tools:alpine \
-  datetime__current America/Los_Angeles
+  uv run python utils.py datetime__current America/Los_Angeles
 ```
 
 ## Writing a new Tool

@@ -59,6 +59,7 @@ CASES: list[Case] = [
     Case("text__characters_count", ["hello world"]),
     Case("text__words_count", ["hello world from docker"]),
     Case("text__show_characters", ["hello"]),
+    Case("text__word_stem", ["running"]),
     Case(
         "user_information__personal_data",
         [],
@@ -77,7 +78,17 @@ def run_case(case: Case) -> tuple[bool, str]:
     cmd = ["docker", "run", "--rm"]
     if case.needs_user_data:
         cmd.extend(["-v", f"{USER_DATA_PATH}:/app/user.data.json:ro"])
-    cmd.extend(["--entrypoint", "./tools", IMAGE, case.name, *case.args])
+    cmd.extend(
+        [
+            IMAGE,
+            "uv",
+            "run",
+            "python",
+            "utils.py",
+            case.name,
+            *case.args,
+        ]
+    )
 
     result = subprocess.run(
         cmd,
@@ -129,6 +140,12 @@ def validate_payload(name: str, payload: dict[str, object]) -> tuple[bool, str]:
             return False, "unexpected `word` value for show_characters"
         if payload.get("characters") != ["h", "e", "l", "l", "o"]:
             return False, "unexpected `characters` array for show_characters"
+
+    if name == "text__word_stem":
+        if payload.get("word") != "running":
+            return False, "unexpected `word` value for word_stem"
+        if payload.get("stem") != "run":
+            return False, "unexpected `stem` value for word_stem"
 
     return True, "ok"
 
