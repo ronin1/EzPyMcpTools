@@ -60,6 +60,7 @@ CASES: list[Case] = [
     Case("text__words_count", ["hello world from docker"]),
     Case("text__show_characters", ["hello"]),
     Case("text__word_stem", ["running"]),
+    Case("text__nlp_tokenize", ["The running and running"]),
     Case(
         "user_information__personal_data",
         [],
@@ -146,6 +147,12 @@ def validate_payload(name: str, payload: dict[str, object]) -> tuple[bool, str]:
             return False, "unexpected `word` value for word_stem"
         if payload.get("stem") != "run":
             return False, "unexpected `stem` value for word_stem"
+
+    if name == "text__nlp_tokenize":
+        if payload.get("tokens") != ["run", "run"]:
+            return False, "unexpected `tokens` value for nlp_tokenize"
+        if payload.get("token_count") != 2:
+            return False, "unexpected `token_count` value for nlp_tokenize"
 
     return True, "ok"
 
