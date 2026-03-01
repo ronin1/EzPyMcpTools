@@ -6,7 +6,7 @@ ENV UV_LINK_MODE=copy
 
 WORKDIR /app
 
-RUN apk add --no-cache tzdata \
+RUN apk add --no-cache tzdata libstdc++ \
     && apk add --no-cache --virtual .build-deps \
         build-base \
         cmake \
