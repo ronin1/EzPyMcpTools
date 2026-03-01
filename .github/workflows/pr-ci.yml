@@ -65,7 +65,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=ezpy-tools
 
       - name: Run Docker tests
-        run: python3 scripts/docker_smoke_test.py
+        run: python3 scripts/run_tests.py --mode docker
 
       - name: Publish image to GHCR (main only)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

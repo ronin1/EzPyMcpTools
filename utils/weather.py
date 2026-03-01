@@ -209,6 +209,16 @@ def _find(pattern: str, html: str) -> str:
     return _strip_tags(m.group(1)) if m else ""
 
 
+def _fetch_weather_html(source_url: str) -> str:
+    """Fetch weather HTML from the configured source URL."""
+    req = urllib.request.Request(
+        source_url,
+        headers={"User-Agent": _USER_AGENT},
+    )
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        return resp.read().decode("utf-8", errors="replace")
+
+
 def _parse_current(html: str) -> dict[str, Any]:
     """Extract current conditions from NWS page HTML."""
     current: dict[str, Any] = {}
@@ -300,6 +310,7 @@ def current_with_forecast(
     latitude: float,
     longitude: float,
     unit: str = "",
+    source_url: str = "",
 ) -> dict[str, Any]:
     """Get current weather and forecast for a US location.
 
@@ -311,17 +322,17 @@ def current_with_forecast(
         longitude: Longitude of the location.
         unit: Temperature unit — "c", "celsius", "f", or
               "fahrenheit". If blank, uses system settings.
+        source_url: Optional alternate weather source URL.
+            Defaults to the NWS MapClick endpoint.
 
     Returns:
         Dict with `location`, `current` conditions, `forecast`
         periods, and `unit` (celsius or fahrenheit).
     """
-    url = _NWS_URL.format(lat=latitude, lon=longitude)
-    req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
+    url = source_url or _NWS_URL.format(lat=latitude, lon=longitude)
 
     try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            html = resp.read().decode("utf-8", errors="replace")
+        html = _fetch_weather_html(url)
     except Exception as e:
         return {"error": f"Failed to fetch weather: {e}"}
 

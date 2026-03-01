@@ -7,20 +7,30 @@ from typing import Any
 _IPINFO_URL = "https://ipinfo.io/json"
 
 
-def public_ipv4() -> dict[str, Any]:
+def _load_ipinfo_payload(source_url: str) -> dict[str, Any]:
+    """Fetch IP payload JSON from a URL-like source."""
+    req = urllib.request.Request(
+        source_url,
+        headers={"Accept": "application/json"},
+    )
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        return json.loads(resp.read().decode())
+
+
+def public_ipv4(source_url: str = "") -> dict[str, Any]:
     """Get current user's public IPv4 address, physical location, and ISP name.
 
     Queries ipinfo.io to retrieve the caller's public-facing
     network information.
 
+    Args:
+        source_url: Optional alternate JSON endpoint to fetch from.
+            Defaults to ipinfo.io.
+
     Returns:
         Dict with `public_ip`, `physical_location`, and `isp_name`.
     """
-    req = urllib.request.Request(
-        _IPINFO_URL, headers={"Accept": "application/json"}
-    )
-    with urllib.request.urlopen(req, timeout=10) as resp:
-        data = json.loads(resp.read().decode())
+    data = _load_ipinfo_payload(source_url or _IPINFO_URL)
 
     # ISP is in the "org" field,
     # typically prefixed with AS number (e.g. "AS7018 AT&T")
@@ -38,10 +48,14 @@ def public_ipv4() -> dict[str, Any]:
     }
 
 
-def approximate_physical_location() -> dict[str, str]:
+def approximate_physical_location(source_url: str = "") -> dict[str, str]:
     """Get your current approximate physical location based on your public IP.
+
+    Args:
+        source_url: Optional alternate JSON endpoint to fetch from.
+            Defaults to ipinfo.io.
 
     Returns:
         Dict with `country`, `state_province`, and `city`.
     """
-    return public_ipv4()["physical_location"]
+    return public_ipv4(source_url=source_url)["physical_location"]

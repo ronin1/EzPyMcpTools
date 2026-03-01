@@ -37,7 +37,7 @@ test_user_info:
 	@uv run python -c "from utils.user_information import personal_data; d = personal_data(); assert d.get('name'), 'missing name in personal_data'"
 
 test: user_info
-	@python3 scripts/container_smoke_test.py
+	@python3 scripts/run_tests.py --mode local
 
 mcp_config:
 	@echo '{'
@@ -70,8 +70,4 @@ docker-build: user_info
 build: docker-build
 
 docker-test: docker-build
-	@docker run --rm \
-		-v "$(CURDIR)/user.data.json:/app/user.data.json:ro" \
-		--entrypoint python \
-		ezpy-tools:alpine \
-		scripts/container_smoke_test.py
+	@python3 scripts/run_tests.py --mode docker
