@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Smoke-test all exposed tools through the Docker image."""
+"""Smoke-test all exposed tools from inside the container."""
 
 from __future__ import annotations
 
 import json
-import os
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -12,17 +11,10 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Case:
-    """Single dockerized tool test case."""
+    """Single in-container tool test case."""
 
     name: str
     args: list[str]
-    needs_user_data: bool = False
-
-
-IMAGE = os.environ.get("EZPY_TOOLS_IMAGE", "ezpy-tools:alpine")
-USER_DATA_PATH = os.path.abspath(
-    os.environ.get("EZPY_USER_DATA", "./user.data.json")
-)
 
 
 CASES: list[Case] = [
@@ -57,33 +49,20 @@ CASES: list[Case] = [
     Case("math__constants", []),
     Case("text__characters_count", ["hello world"]),
     Case("text__words_count", ["hello world from docker"]),
-    Case(
-        "user_information__personal_data",
-        [],
-        needs_user_data=True,
-    ),
+    Case("user_information__personal_data", []),
     Case("weather__temperature_unit_for_country", ["US"]),
-    Case(
-        "weather__current_with_forecast",
-        ["34.0522", "-118.2437"],
-    ),
+    Case("weather__current_with_forecast", ["34.0522", "-118.2437"]),
 ]
 
 
 def run_case(case: Case) -> tuple[bool, str]:
     """Run one case and verify output is a JSON object."""
-    cmd = ["docker", "run", "--rm"]
-    if case.needs_user_data:
-        cmd.extend(["-v", f"{USER_DATA_PATH}:/app/user.data.json:ro"])
-    cmd.extend(["--entrypoint", "./tools", IMAGE, case.name, *case.args])
-
     result = subprocess.run(
-        cmd,
+        ["./tools", case.name, *case.args],
         capture_output=True,
         text=True,
         check=False,
     )
-
     if result.returncode != 0:
         return False, (result.stderr or result.stdout).strip()
 
@@ -102,7 +81,9 @@ def run_case(case: Case) -> tuple[bool, str]:
     return True, "ok"
 
 
-def validate_payload(name: str, payload: dict[str, object]) -> tuple[bool, str]:
+def validate_payload(
+    name: str, payload: dict[str, object]
+) -> tuple[bool, str]:
     """Validate minimum shape for key tool outputs."""
     if name == "user_information__personal_data":
         user_name = payload.get("name")
@@ -125,17 +106,8 @@ def validate_payload(name: str, payload: dict[str, object]) -> tuple[bool, str]:
 
 
 def main() -> int:
-    """Run all smoke tests and print a summary."""
-    if not os.path.exists(USER_DATA_PATH):
-        print(
-            f"ERROR: user data file not found: {USER_DATA_PATH}",
-            file=sys.stderr,
-        )
-        return 2
-
-    print(f"Image: {IMAGE}")
-    print(f"User data: {USER_DATA_PATH}")
-    print(f"Running {len(CASES)} dockerized tool checks...\n")
+    """Run all smoke tests and print summary."""
+    print(f"Running {len(CASES)} in-container tool checks...\n")
 
     passed = 0
     failed = 0

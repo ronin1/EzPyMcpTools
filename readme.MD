@@ -22,6 +22,23 @@ After pulling this project from GitHub:
 - In your console, run `make setup`, this will install all required Python packages & prompt you for your basic personal information & save it under `./user.data.json`
 - Don't worry, `*.data.json` files are already in [.gitignore](./.gitignore#L65) & will never be checked in (on accident or on purpose)
 - `make setup` will also call `make mcp_config` which prints the required configuration for LmStudio & Ollama.
+- You can also start from `./user.data.json.example` and copy it to `./user.data.json`:
+
+```json
+{
+  "name": {
+    "first": "Jane",
+    "middle": "Q",
+    "last": "Public"
+  },
+  "birthday": "1990-01-31",
+  "email": "jane@example.com",
+  "phone": "+1-555-123-4567",
+  "addresss": [
+    "123 Main St, Springfield, IL 62701, US"
+  ]
+}
+```
 
 ## Install Instructions
 

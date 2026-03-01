@@ -88,7 +88,25 @@ def _compute_age(birthday: str) -> int:
 
 
 _CONFIG_PATH = pathlib.Path(__file__).parent.parent / "user.data.json"
-_REQUIRED_FIELDS = ["birthday", "email", "phone", "addresss"]
+_REQUIRED_FIELDS = ["name", "birthday", "email", "phone", "addresss"]
+
+
+def _is_missing(field: str, value: Any) -> bool:
+    """Return True if a required field value is missing/invalid."""
+    if field == "name":
+        if isinstance(value, dict):
+            first = str(value.get("first", "")).strip()
+            last = str(value.get("last", "")).strip()
+            middle = str(value.get("middle", "")).strip()
+            return not any([first, middle, last])
+        return not str(value or "").strip()
+
+    if field == "addresss":
+        if not isinstance(value, list):
+            return True
+        return not any(str(item).strip() for item in value)
+
+    return not value
 
 
 def _ask_user(
@@ -106,10 +124,43 @@ def _ask_user(
     data: dict[str, Any] = dict(existing) if existing else {}
 
     for field in _REQUIRED_FIELDS:
-        if data.get(field):
+        if not _is_missing(field, data.get(field)):
             continue
 
-        if field == "addresss":
+        if field == "name":
+            print("\nname:")
+            existing_name = data.get("name", {})
+            if isinstance(existing_name, dict):
+                first_default = str(existing_name.get("first", "")).strip()
+                middle_default = str(existing_name.get("middle", "")).strip()
+                last_default = str(existing_name.get("last", "")).strip()
+            else:
+                first_default = str(existing_name or "").strip()
+                middle_default = ""
+                last_default = ""
+
+            first = (
+                input(f"  first [{first_default}]: ").strip()
+                or first_default
+            )
+            middle = (
+                input(f"  middle [{middle_default}]: ").strip()
+                or middle_default
+            )
+            last = (
+                input(f"  last [{last_default}]: ").strip()
+                or last_default
+            )
+
+            if not any([first, middle, last]):
+                first = _get_username()
+
+            data[field] = {
+                "first": first,
+                "middle": middle,
+                "last": last,
+            }
+        elif field == "addresss":
             print(
                 f"\n{field} (enter one address per line, blank line to stop):"
             )
@@ -151,7 +202,9 @@ def _ensure_user_info() -> None:
             existing = json.load(f)
 
     missing = [
-        f for f in _REQUIRED_FIELDS if f not in existing or not existing[f]
+        f
+        for f in _REQUIRED_FIELDS
+        if f not in existing or _is_missing(f, existing.get(f))
     ]
 
     if not missing:
@@ -174,20 +227,20 @@ def personal_data() -> dict[str, Any]:
     """Get current user's personal data.
 
     Returns:
-        Dict with `name`, `long_name`, `birthday`, `age`,
-        `email`, `phone`, and `addresss`.
+        Dict with `name`, `long_name`, `birthday`, `age`, `email`,
+        `phone`, and `addresss`.
     """
-    info: dict[str, Any] = {
-        "name": _get_username(),
-        "long_name": _get_full_name(),
-    }
-
     if not _CONFIG_PATH.exists():
         missing = _REQUIRED_FIELDS
+        data: dict[str, Any] = {}
     else:
         with open(_CONFIG_PATH, encoding="utf-8") as f:
             data = json.load(f)
-        missing = [f for f in _REQUIRED_FIELDS if f not in data or not data[f]]
+        missing = [
+            f
+            for f in _REQUIRED_FIELDS
+            if f not in data or _is_missing(f, data.get(f))
+        ]
 
     if missing:
         raise FileNotFoundError(
@@ -196,9 +249,27 @@ def personal_data() -> dict[str, Any]:
             f"Missing fields: {', '.join(missing)}"
         )
 
-    with open(_CONFIG_PATH, encoding="utf-8") as f:
-        data = json.load(f)
+    raw_name = data.get("name")
+    if _is_missing("name", raw_name):
+        resolved_name: Any = _get_username()
+        resolved_long_name = _get_full_name()
+    else:
+        resolved_name = raw_name
+        if isinstance(raw_name, dict):
+            first = str(raw_name.get("first", "")).strip()
+            middle = str(raw_name.get("middle", "")).strip()
+            last = str(raw_name.get("last", "")).strip()
+            joined = " ".join(
+                part for part in [first, middle, last] if part
+            ).strip()
+            resolved_long_name = joined or _get_full_name()
+        else:
+            resolved_long_name = str(raw_name).strip() or _get_full_name()
 
+    info: dict[str, Any] = {
+        "name": resolved_name,
+        "long_name": resolved_long_name,
+    }
     info.update(data)
     info["age"] = _compute_age(str(info["birthday"]))
     return info

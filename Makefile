@@ -4,9 +4,9 @@ unexport VIRTUAL_ENV
 OLLAMA_MODEL ?= qwen3-vl:8b
 #OLLAMA_MODEL ?= llama4:16x17b
 
-.PHONY: setup py_req user_info run test mcp_config config inspector lint docker-build docker-test
+.PHONY: setup py_req user_info run test test_user_info mcp_config config inspector lint docker-build docker-test
 
-setup: py_req user_info mcp_config
+setup: py_req user_info test_user_info mcp_config
 
 py_req:
 	@python3 -c "import sys; v=sys.version_info; exit(0 if v >= (3,12) else 1)" 2>/dev/null \
@@ -33,7 +33,11 @@ run_ollama:
 test_ip:
 	@uv run python utils.py ip_address__public_ipv4
 
-test: test_ip
+test_user_info:
+	@uv run python -c "from utils.user_information import personal_data; d = personal_data(); assert d.get('name'), 'missing name in personal_data'"
+
+test: user_info
+	@python3 scripts/docker_smoke_test.py
 
 mcp_config:
 	@echo '{'
@@ -58,8 +62,12 @@ lint:
 inspector:
 	@npx @modelcontextprotocol/inspector
 
-docker-build:
+docker-build: user_info
 	@docker build -t ezpy-tools:alpine .
 
-docker-test:
-	@python3 scripts/docker_smoke_test.py
+docker-test: docker-build
+	@docker run --rm \
+		-v "$(CURDIR)/user.data.json:/app/user.data.json:ro" \
+		--entrypoint python \
+		ezpy-tools:alpine \
+		scripts/container_smoke_test.py
