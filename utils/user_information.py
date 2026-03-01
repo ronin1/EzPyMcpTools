@@ -1,22 +1,67 @@
 """Current user's personal information utilities."""
 
 import json
+import os
 import pathlib
+import pwd
 import subprocess
 from datetime import date
 from typing import Any
 
 
 def _get_full_name() -> str:
-    """Get the current Unix full name of the current user."""
-    result = subprocess.run(
-        ["id", "-F"],
-        capture_output=True,
-        text=True,
-        timeout=5,
-        check=True,
-    )
-    return result.stdout.strip()
+    """Get the current user's full name across macOS/Linux.
+
+    Preference order:
+      1) POSIX account GECOS field
+      2) macOS `id -F`
+      3) Linux `getent passwd <user>` GECOS field
+      4) Fallback to username
+    """
+    # 1) POSIX account metadata (works in most Unix environments,
+    # including Alpine).
+    try:
+        gecos = pwd.getpwuid(os.getuid()).pw_gecos.split(",", 1)[0].strip()
+        if gecos:
+            return gecos
+    except (KeyError, OSError, AttributeError):
+        pass
+
+    # 2) macOS full name.
+    try:
+        result = subprocess.run(
+            ["id", "-F"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except OSError:
+        pass
+
+    # 3) Linux NSS database lookup as fallback.
+    user = _get_username()
+    try:
+        result = subprocess.run(
+            ["getent", "passwd", user],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            parts = result.stdout.strip().split(":")
+            if len(parts) >= 5:
+                full_name = parts[4].split(",", 1)[0].strip()
+                if full_name:
+                    return full_name
+    except OSError:
+        pass
+
+    # 4) Last resort.
+    return user
 
 
 def _get_username() -> str:
