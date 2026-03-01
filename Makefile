@@ -4,9 +4,9 @@ unexport VIRTUAL_ENV
 OLLAMA_MODEL ?= qwen3-vl:8b
 #OLLAMA_MODEL ?= llama4:16x17b
 
-.PHONY: setup py_req user_info run test mcp_config config inspector lint
+.PHONY: setup py_req user_info run test test_user_info mcp_config config inspector lint build docker-build docker-test
 
-setup: py_req user_info mcp_config
+setup: py_req user_info test_user_info mcp_config
 
 py_req:
 	@python3 -c "import sys; v=sys.version_info; exit(0 if v >= (3,12) else 1)" 2>/dev/null \
@@ -33,7 +33,16 @@ run_ollama:
 test_ip:
 	@uv run python utils.py ip_address__public_ipv4
 
-test: test_ip
+test_user_info:
+	@uv run python -c "from utils.user_information import personal_data; d = personal_data(); assert d.get('name'), 'missing name in personal_data'"
+
+test:
+	@if [ ! -f user.data.json ]; then \
+		echo "Error: user.data.json is required for 'make test' but is missing."; \
+		echo "Create it (for example by running 'make user_info' interactively) before running tests."; \
+		exit 1; \
+	fi
+	@python3 scripts/run_tests.py --mode local
 
 mcp_config:
 	@echo '{'
@@ -51,8 +60,19 @@ config:
 		PWD="$(CURDIR)" envsubst < lmstudio.cfg.json
 
 lint:
+	@uv run isort . --profile black --line-length 80
+	@uv run black . --line-length 80
 	@uv run ruff check --fix .
+	@uv run ty check .
 	@uv run ruff format .
 
 inspector:
 	@npx @modelcontextprotocol/inspector
+
+docker-build: user_info
+	@docker build -t ezpy-tools:alpine .
+
+build: docker-build
+
+docker-test: docker-build
+	@python3 scripts/run_tests.py --mode docker

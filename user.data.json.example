@@ -1,0 +1,13 @@
+{
+  "name": {
+    "first": "Jane",
+    "middle": "Q",
+    "last": "Public"
+  },
+  "birthday": "1990-01-31",
+  "email": "jane@example.com",
+  "phone": "+1-555-123-4567",
+  "addresss": [
+    "123 Main St, Springfield, IL 62701, US"
+  ]
+}

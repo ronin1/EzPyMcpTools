@@ -1,0 +1,87 @@
+name: PR CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  lint-and-docker-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          repository: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Sync dependencies
+        run: uv sync --dev
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Run lint (auto-fix where possible)
+        run: make lint
+
+      - name: Commit lint fixes (if any)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          if git diff --quiet; then
+            echo "No lint fixes to commit."
+            exit 0
+          fi
+
+          git add -A
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -m "chore(ci): apply lint auto-fixes"
+          git push origin HEAD:${{ github.head_ref }}
+
+      - name: Rename user data example for container test
+        run: mv user.data.json.example user.data.json
+
+      - name: Build Docker image (cached)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: ezpy-tools:alpine
+          cache-from: type=gha,scope=ezpy-tools
+          cache-to: type=gha,mode=max,scope=ezpy-tools
+
+      - name: Run Docker tests
+        run: python3 scripts/run_tests.py --mode docker
+
+      - name: Publish image to GHCR (main only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GHCR_REPO: ghcr.io/${{ github.repository_owner }}/ezpy-tools
+          IMAGE_SHA: ${{ github.sha }}
+        run: |
+          GHCR_REPO_LOWER="$(echo "${GHCR_REPO}" | tr '[:upper:]' '[:lower:]')"
+          SHORT_SHA="$(echo "${IMAGE_SHA}" | cut -c1-12)"
+
+          echo "${{ secrets.GITHUB_TOKEN }}" \
+            | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+          docker tag ezpy-tools:alpine "${GHCR_REPO_LOWER}:latest"
+          docker tag ezpy-tools:alpine "${GHCR_REPO_LOWER}:sha-${SHORT_SHA}"
+
+          docker push "${GHCR_REPO_LOWER}:latest"
+          docker push "${GHCR_REPO_LOWER}:sha-${SHORT_SHA}"

@@ -1,5 +1,7 @@
 # Easy Python MCP Tools
 
+[![PR CI (main)](https://github.com/ronin1/EzPyMcpTools/actions/workflows/pr-ci.yml/badge.svg?branch=main)](https://github.com/ronin1/EzPyMcpTools/actions/workflows/pr-ci.yml)
+
 - An easy way to create a bunch of custom tools for a Model Context Protocol (MCP) server.
 - Currently, this project is used as a local MCP server for [LmStudio](https://lmstudio.ai) (or [Ollama](https://docs.ollama.com)); primarily for use with open-source models.
 - It allows you to write plain Python scripts & those will show up as proper agent tools (with name space & instructions).
@@ -22,6 +24,23 @@ After pulling this project from GitHub:
 - In your console, run `make setup`, this will install all required Python packages & prompt you for your basic personal information & save it under `./user.data.json`
 - Don't worry, `*.data.json` files are already in [.gitignore](./.gitignore#L65) & will never be checked in (on accident or on purpose)
 - `make setup` will also call `make mcp_config` which prints the required configuration for LmStudio & Ollama.
+- You can also start from `./user.data.json.example` and copy it to `./user.data.json`:
+
+```json
+{
+  "name": {
+    "first": "Jane",
+    "middle": "Q",
+    "last": "Public"
+  },
+  "birthday": "1990-01-31",
+  "email": "jane@example.com",
+  "phone": "+1-555-123-4567",
+  "addresss": [
+    "123 Main St, Springfield, IL 62701, US"
+  ]
+}
+```
 
 ## Install Instructions
 
@@ -58,12 +77,9 @@ After pulling this project from GitHub:
 - Adding the following to `System Prompt` seems to help with clarity:
 
 ```txt
-Retry the prompt up to 3 times on failure and no more.
 Prefer available tool for better accuracy. 
-Response with `I don't know the answer` if your confidence is lower than 70%.
-Give short & concise answers, no emojis.
-If the same question is asked, reprocess from scratch, do not use previous results or cache.
-Use ezpy-tool `user_information__personal_data` to get current user info.
+Respond with `I don't know the answer` if your confidence is lower than 70%.
+Do not use previous results or cache.
 ```
 
 ### Ollama Setup
@@ -81,11 +97,62 @@ By choosing **Ollama**, we assume you know what you're doing:
 
 ### Other Commercial Models & Agents
 
-- Being a standard MCP server, it __should__ be compatible with all agents & models (including commercial ones).
+- Being a standard MCP server, it **should** be compatible with all agents & models (including commercial ones).
 - Currently, this MCP server is being built for local run via `stdio` transport.  
 - You can start it with `http` or `sse` transport by running: `uv run python mcp_server.py --transport http`
 - *WARNING:* This MCP server has no authentication built in currently. Please do not run in `http` or `sse` protocol & expose it to the open web. You *will* get hacked.
 - See Anthropic [MCP specs](https://modelcontextprotocol.io/specification/2025-06-18/basic) for more info.
+
+### Docker (Alpine) for FastMCP `stdio`
+
+- Build the image:
+
+```bash
+make docker-build
+```
+
+- Run Docker smoke tests across all tools:
+
+```bash
+make docker-test
+```
+
+- Run the MCP server in `stdio` mode from Docker:
+
+```bash
+docker run --rm -i \
+  -v "$PWD/user.data.json:/app/user.data.json:ro" \
+  ezpy-tools:alpine
+```
+
+- Example MCP config (LmStudio/Ollama host) for Docker-based `stdio`:
+
+```json
+{
+  "mcpServers": {
+    "ezpy_tools_docker": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-v",
+        "/absolute/path/to/tools/user.data.json:/app/user.data.json:ro",
+        "ezpy-tools:alpine"
+      ]
+    }
+  }
+}
+```
+
+- Run a tool directly in Docker (example: current time):
+
+```bash
+docker run --rm \
+  -v "$PWD/user.data.json:/app/user.data.json:ro" \
+  ezpy-tools:alpine \
+  uv run python utils.py datetime__current America/Los_Angeles
+```
 
 ## Writing a new Tool
 
