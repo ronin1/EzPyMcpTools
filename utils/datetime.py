@@ -158,9 +158,10 @@ def current(time_zone: str = "") -> dict[str, Any]:
 
             user_info = personal_data()
             user_tz = user_info.get("timezone", "UTC")
-            if user_tz != "UTC":
+            tz = None
+            if user_tz and user_tz != "UTC":
                 tz = _resolve_timezone(user_tz)
-            else:
+            if tz is None:
                 tz = datetime.now().astimezone().tzinfo
         except Exception:
             tz = datetime.now().astimezone().tzinfo
