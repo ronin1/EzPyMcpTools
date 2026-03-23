@@ -95,7 +95,7 @@ def _compute_age(birthday: str) -> int:
 
 
 _CONFIG_PATH = pathlib.Path(__file__).parent.parent / "user.data.json"
-_REQUIRED_FIELDS = ["birthday", "email", "phone", "addresss", "timezone"]
+_REQUIRED_FIELDS = ["birthday", "email", "phone", "addresses", "timezone"]
 
 
 def _is_missing(field: str, value: Any) -> bool:
@@ -108,7 +108,7 @@ def _is_missing(field: str, value: Any) -> bool:
             return not any([first, middle, last])
         return not str(value or "").strip()
 
-    if field == "addresss":
+    if field == "addresses":
         if not isinstance(value, list):
             return True
         return not any(str(item).strip() for item in value)
@@ -134,7 +134,7 @@ def _ask_user(
         if not _is_missing(field, data.get(field)):
             continue
 
-        if field == "addresss":
+        if field == "addresses":
             print(
                 f"\n{field} (enter one address per line, blank line to stop):"
             )
@@ -225,7 +225,7 @@ def personal_data() -> dict[str, Any]:
 
     Returns:
         Dict with `name`, `long_name`, `birthday`, `age`, `email`,
-        `phone`, `addresss`, and `timezone`.
+        `phone`, `addresses`, and `timezone`.
     """
     required_for_read = [f for f in _REQUIRED_FIELDS if f != "timezone"]
 

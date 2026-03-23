@@ -21,7 +21,7 @@ def test_personal_data_uses_fallback_name(
                 "birthday": "1990-01-31",
                 "email": "jane@example.com",
                 "phone": "+1-555-123-4567",
-                "addresss": ["123 Main St"],
+                "addresses": ["123 Main St"],
             }
         ),
         encoding="utf-8",
@@ -50,7 +50,7 @@ def test_personal_data_with_custom_timezone(
                 "birthday": "1990-01-31",
                 "email": "jane@example.com",
                 "phone": "+1-555-123-4567",
-                "addresss": ["123 Main St"],
+                "addresses": ["123 Main St"],
             }
         ),
         encoding="utf-8",
