@@ -40,7 +40,7 @@ jobs:
         run: make lint
 
       - name: Commit lint fixes (if any)
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
         run: |
           if git diff --quiet; then
             echo "No lint fixes to commit."
