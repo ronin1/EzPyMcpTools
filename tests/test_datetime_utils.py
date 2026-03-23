@@ -27,3 +27,15 @@ def test_country_timezones_for_us() -> None:
     assert payload["country_code"] == "US"
     assert payload["count"] >= 1
     assert isinstance(payload["timezones"], list)
+
+
+def test_current_uses_user_configured_timezone() -> None:
+    payload = dt_utils.current()
+    assert "error" not in payload
+    from utils.user_information import personal_data
+
+    user_info = personal_data()
+    resolved_user_tz = dt_utils._resolve_timezone(user_info["timezone"])
+    assert resolved_user_tz is not None
+    iana_name = str(resolved_user_tz)
+    assert payload["timezone"]["name"] == iana_name

@@ -95,7 +95,7 @@ def _compute_age(birthday: str) -> int:
 
 
 _CONFIG_PATH = pathlib.Path(__file__).parent.parent / "user.data.json"
-_REQUIRED_FIELDS = ["birthday", "email", "phone", "addresss"]
+_REQUIRED_FIELDS = ["birthday", "email", "phone", "addresss", "timezone"]
 
 
 def _is_missing(field: str, value: Any) -> bool:
@@ -157,6 +157,16 @@ def _ask_user(
                     break
                 except ValueError:
                     print("  Invalid date format. Use YYYY-MM-DD.")
+        elif field == "timezone":
+            current_tz = str(data.get(field, "")).strip() or _get_timezone()
+            val = (
+                input(
+                    "\ntimezone (IANA, e.g. America/Los_Angeles)"
+                    f" [{current_tz}]: "
+                ).strip()
+                or current_tz
+            )
+            data[field] = val
         else:
             val = input(f"\n{field}: ").strip()
             data[field] = val
@@ -197,22 +207,37 @@ def _ensure_user_info() -> None:
     print(f"\nSaved to {_CONFIG_PATH}")
 
 
+def _get_timezone() -> str:
+    """Get current system IANA timezone if available."""
+    try:
+        from utils.datetime import _get_local_iana_timezone
+
+        tz = _get_local_iana_timezone().strip()
+        if tz:
+            return tz
+    except Exception:
+        pass
+    return "UTC"
+
+
 def personal_data() -> dict[str, Any]:
     """Get current user's personal data.
 
     Returns:
         Dict with `name`, `long_name`, `birthday`, `age`, `email`,
-        `phone`, and `addresss`.
+        `phone`, `addresss`, and `timezone`.
     """
+    required_for_read = [f for f in _REQUIRED_FIELDS if f != "timezone"]
+
     if not _CONFIG_PATH.exists():
-        missing = _REQUIRED_FIELDS
+        missing = required_for_read
         data: dict[str, Any] = {}
     else:
         with open(_CONFIG_PATH, encoding="utf-8") as f:
             data = json.load(f)
         missing = [
             f
-            for f in _REQUIRED_FIELDS
+            for f in required_for_read
             if f not in data or _is_missing(f, data.get(f))
         ]
 
@@ -256,4 +281,5 @@ def personal_data() -> dict[str, Any]:
             "Expected ISO format 'YYYY-MM-DD'. "
             "Run 'make user_info' to correct it."
         ) from exc
+    info["timezone"] = str(data.get("timezone", "")).strip() or _get_timezone()
     return info

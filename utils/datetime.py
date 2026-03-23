@@ -153,10 +153,20 @@ def current(time_zone: str = "") -> dict[str, Any]:
                 )
             }
     else:
-        tz = datetime.now().astimezone().tzinfo
+        try:
+            from utils.user_information import personal_data
+
+            user_info = personal_data()
+            user_tz = user_info.get("timezone", "UTC")
+            if user_tz != "UTC":
+                tz = _resolve_timezone(user_tz)
+            else:
+                tz = datetime.now().astimezone().tzinfo
+        except Exception:
+            tz = datetime.now().astimezone().tzinfo
 
     now = datetime.now(tz)
-    iana_name = tz.key if hasattr(tz, "key") else str(tz)
+    iana_name = str(tz)
 
     return {
         "date_time": {
