@@ -59,10 +59,14 @@ def test_personal_data_with_custom_timezone(
     monkeypatch.setattr(user_information, "_CONFIG_PATH", config)
     monkeypatch.setattr(user_information, "_get_username", lambda: "jane")
     monkeypatch.setattr(user_information, "_get_full_name", lambda: "Jane Doe")
+    monkeypatch.setattr(
+        user_information,
+        "_get_timezone",
+        lambda: "America/New_York",
+    )
 
     payload = user_information.personal_data()
-    assert "timezone" in payload
-    assert isinstance(payload["timezone"], str)
+    assert payload["timezone"] == "America/New_York"
 
 
 def test_personal_data_missing_required_fields_raises(
