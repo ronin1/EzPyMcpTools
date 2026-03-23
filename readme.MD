@@ -39,7 +39,8 @@ After pulling this project from GitHub:
   "phone": "+1-555-123-4567",
   "addresses": [
     "123 Main St, Springfield, IL 62701, US"
-  ]
+  ],
+  "timezone": "America/Chicago"
 }
 ```
 

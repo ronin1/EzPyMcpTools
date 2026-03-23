@@ -39,7 +39,7 @@ def test_personal_data_uses_fallback_name(
     assert payload["timezone"] == "UTC"
 
 
-def test_personal_data_with_custom_timezone(
+def test_personal_data_falls_back_to_system_timezone(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
