@@ -47,3 +47,9 @@ uv_cache/
 node_modules/
 *.data.json
 screenshots/
+
+# opencode session files
+session-*.md
+session/**/*.md
+**/*.py.backup
+**/*.py.bak
