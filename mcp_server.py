@@ -33,11 +33,7 @@ def _discover_and_register() -> None:
             if not name.startswith("_") and obj.__module__ == module.__name__:
                 qualified_name = f"{namespace}__{name}"
                 func_doc = (obj.__doc__ or "").strip()
-                description = (
-                    f"[{namespace}] {ns_doc}\n{func_doc}"
-                    if ns_doc
-                    else func_doc
-                )
+                description = f"[{namespace}] {ns_doc}\n{func_doc}" if ns_doc else func_doc
                 mcp.tool(
                     name=qualified_name,
                     description=description,

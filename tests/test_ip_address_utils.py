@@ -15,9 +15,7 @@ def test_public_ipv4_uses_mock_source(ipinfo_source_url: str) -> None:
 def test_approximate_physical_location_uses_mock_source(
     ipinfo_source_url: str,
 ) -> None:
-    payload = ip_address.approximate_physical_location(
-        source_url=ipinfo_source_url
-    )
+    payload = ip_address.approximate_physical_location(source_url=ipinfo_source_url)
     assert payload["country"] == "US"
     assert payload["state_province"] == "California"
     assert payload["city"] == "Los Angeles"

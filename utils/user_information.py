@@ -87,11 +87,7 @@ def _compute_age(birthday: str) -> int:
     """Compute age from a birthday string (YYYY-MM-DD)."""
     born = date.fromisoformat(birthday)
     today = date.today()
-    return (
-        today.year
-        - born.year
-        - ((today.month, today.day) < (born.month, born.day))
-    )
+    return today.year - born.year - ((today.month, today.day) < (born.month, born.day))
 
 
 _CONFIG_PATH = pathlib.Path(__file__).parent.parent / "user.data.json"
@@ -135,9 +131,7 @@ def _ask_user(
             continue
 
         if field == "addresses":
-            print(
-                f"\n{field} (enter one address per line, blank line to stop):"
-            )
+            print(f"\n{field} (enter one address per line, blank line to stop):")
             addresses: list[str] = []
             while True:
                 addr = input("  address> ").strip()
@@ -160,10 +154,7 @@ def _ask_user(
         elif field == "timezone":
             current_tz = str(data.get(field, "")).strip() or _get_timezone()
             val = (
-                input(
-                    "\ntimezone (IANA, e.g. America/Los_Angeles)"
-                    f" [{current_tz}]: "
-                ).strip()
+                input(f"\ntimezone (IANA, e.g. America/Los_Angeles) [{current_tz}]: ").strip()
                 or current_tz
             )
             data[field] = val
@@ -185,11 +176,7 @@ def _ensure_user_info() -> None:
         with open(_CONFIG_PATH, encoding="utf-8") as f:
             existing = json.load(f)
 
-    missing = [
-        f
-        for f in _REQUIRED_FIELDS
-        if f not in existing or _is_missing(f, existing.get(f))
-    ]
+    missing = [f for f in _REQUIRED_FIELDS if f not in existing or _is_missing(f, existing.get(f))]
 
     if not missing:
         print(f"{_CONFIG_PATH} already has all required fields.")
@@ -235,11 +222,7 @@ def personal_data() -> dict[str, Any]:
     else:
         with open(_CONFIG_PATH, encoding="utf-8") as f:
             data = json.load(f)
-        missing = [
-            f
-            for f in required_for_read
-            if f not in data or _is_missing(f, data.get(f))
-        ]
+        missing = [f for f in required_for_read if f not in data or _is_missing(f, data.get(f))]
 
     if missing:
         raise FileNotFoundError(
@@ -258,9 +241,7 @@ def personal_data() -> dict[str, Any]:
             first = str(raw_name.get("first", "")).strip()
             middle = str(raw_name.get("middle", "")).strip()
             last = str(raw_name.get("last", "")).strip()
-            joined = " ".join(
-                part for part in [first, middle, last] if part
-            ).strip()
+            joined = " ".join(part for part in [first, middle, last] if part).strip()
             resolved_long_name = joined or _get_full_name()
         else:
             resolved_long_name = str(raw_name).strip() or _get_full_name()

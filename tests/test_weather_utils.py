@@ -19,12 +19,6 @@ def test_current_with_forecast_uses_mock_source(
 
 
 def test_temperature_unit_for_country_supports_alpha2_and_alpha3() -> None:
-    assert weather.temperature_unit_for_country("US")["default_unit"] == (
-        "fahrenheit"
-    )
-    assert weather.temperature_unit_for_country("USA")["default_unit"] == (
-        "fahrenheit"
-    )
-    assert weather.temperature_unit_for_country("FR")["default_unit"] == (
-        "celsius"
-    )
+    assert weather.temperature_unit_for_country("US")["default_unit"] == ("fahrenheit")
+    assert weather.temperature_unit_for_country("USA")["default_unit"] == ("fahrenheit")
+    assert weather.temperature_unit_for_country("FR")["default_unit"] == ("celsius")

@@ -55,8 +55,8 @@ make run_mcp
 make lint
 
 # Individual linters
-uv run isort . --profile black --line-length 80
-uv run black . --line-length 80
+uv run isort . --profile black --line-length 100
+uv run black . --line-length 100
 uv run ruff check --fix .
 uv run ty check .
 uv run ruff format .
@@ -98,13 +98,13 @@ make docker-test      # Build and run tests in Docker
 ## Code Style Guidelines
 
 ### General
-- **Line Length**: 80 characters (hard limit)
+- **Line Length**: 100 characters (hard limit)
 - **Python Version**: 3.12+
 - **Encoding**: UTF-8 (`encoding="utf-8"` on all file operations)
 - **Future Imports**: `from __future__ import annotations` in all modules
 
 ### Formatting
-- **Formatter**: black with line-length 80
+- **Formatter**: black with line-length 100
 - **Import Sorting**: isort with black profile
 - **Quotes**: Double quotes (`"`) for strings
 - **Indentation**: Spaces (4 spaces standard, 8 for continuation)
@@ -118,7 +118,8 @@ make docker-test      # Build and run tests in Docker
 
 ### Naming Conventions
 - **Modules/Files**: lowercase_with_underscores (`datetime.py`)
-- **Functions**: lowercase_with_underscores (`get_current_time`)
+- **Public Functions**: lowercase_with_underscores (`get_current_time`)
+- **Private Functions**: _underscore_lowercase_with_underscores (`_get_data`)
 - **Classes**: PascalCase (`MyClass`)
 - **Constants**: UPPER_SNAKE_CASE (`MAX_RETRIES`)
 - **Private**: Leading underscore (`_helper_function`)
@@ -145,6 +146,7 @@ make docker-test      # Build and run tests in Docker
 utils/
   __init__.py
   datetime.py      # Date/time utilities
+  geo_location.py  # Geographical location utilities
   ip_address.py    # IP lookup utilities
   math.py          # Calculator utilities
   text.py          # Text utilities
@@ -164,7 +166,7 @@ utils/
 - Formatter: charliermarsh.ruff
 - Format on save enabled
 - Ruff code actions on save (fix all, organize imports)
-- Editor ruler at 80 columns
+- Editor ruler at 100 columns
 
 ### CI Requirements
 - All PRs run `make lint` and `make docker-test`

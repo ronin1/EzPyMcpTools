@@ -341,12 +341,7 @@ def current_with_forecast(
 
     # Check if the page returned usable data
     if not markdown or "forecast" not in markdown.lower():
-        return {
-            "error": (
-                "No forecast data found. Coordinates may "
-                "be outside the US or invalid."
-            )
-        }
+        return {"error": ("No forecast data found. Coordinates may be outside the US or invalid.")}
 
     # Extract location
     location = _find(r'<h2 class="panel-title"[^>]*>(.*?)</h2>', html)
@@ -366,18 +361,12 @@ def current_with_forecast(
     # Convert temperatures if needed
     if celsius:
         if "temperature" in current:
-            current["temperature"] = _convert_temp_str(
-                current["temperature"], celsius=True
-            )
+            current["temperature"] = _convert_temp_str(current["temperature"], celsius=True)
         for period in forecast:
             if "temperature" in period:
-                period["temperature"] = _convert_temp_str(
-                    period["temperature"], celsius=True
-                )
+                period["temperature"] = _convert_temp_str(period["temperature"], celsius=True)
             if "detail" in period:
-                period["detail"] = _convert_temp_str(
-                    period["detail"], celsius=True
-                )
+                period["detail"] = _convert_temp_str(period["detail"], celsius=True)
 
     return {
         "location": location,

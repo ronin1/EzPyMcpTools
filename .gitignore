@@ -64,3 +64,9 @@
 **/*.log
 **/*.data.json
 **/*.tmp/
+
+# opencode session files
+session-*.md
+session/**/*.md
+**/*.py.backup
+**/*.py.bak
