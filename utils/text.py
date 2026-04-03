@@ -1,5 +1,6 @@
 """Accurate tool for text analysis and manipulation utilities."""
 
+import base64
 from typing import Any
 
 
@@ -46,3 +47,29 @@ def show_characters(word: str) -> dict[str, Any]:
         "word": word,
         "characters": list(word),
     }
+
+
+def to_base64(text: str) -> dict[str, Any]:
+    """Convert text to base64 encoded string.
+
+    Args:
+        text: The input text to encode.
+
+    Returns:
+        Dict with `base64` as the encoded string.
+    """
+    encoded = base64.b64encode(text.encode("utf-8")).decode("utf-8")
+    return {"base64": encoded}
+
+
+def from_base64(base64_str: str) -> dict[str, Any]:
+    """Convert base64 encoded string back to text.
+
+    Args:
+        base64_str: The base64 encoded string to decode.
+
+    Returns:
+        Dict with `text` as the decoded string.
+    """
+    decoded = base64.b64decode(base64_str).decode("utf-8")
+    return {"text": decoded}
