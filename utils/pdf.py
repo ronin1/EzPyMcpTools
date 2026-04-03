@@ -32,7 +32,11 @@ def from_html(base64_html: str) -> dict[str, Any]:
         text = re.sub(r"<[^>]*>", " ", html_content)
         text = " ".join(text.split())
 
-        pdf.multi_cell(0, 10, text)
+        # Encode text to latin-1, replacing unsupported characters with '?'
+        # to avoid UnicodeEncodeError in fpdf2 core fonts
+        safe_text = text.encode("latin-1", errors="replace").decode("latin-1")
+
+        pdf.multi_cell(0, 10, safe_text)
 
         pdf_bytes = pdf.output()
         if not isinstance(pdf_bytes, (bytes, bytearray)):
