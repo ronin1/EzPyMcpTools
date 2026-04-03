@@ -51,5 +51,7 @@ screenshots/
 # opencode session files
 session-*.md
 session/**/*.md
+readme.MD
+AGENTS.md
 **/*.py.backup
 **/*.py.bak
