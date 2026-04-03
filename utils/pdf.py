@@ -10,8 +10,29 @@ from typing import Any
 from fpdf import FPDF
 
 
+def _strip_js_from_html(html_content: str) -> str:
+    """Remove JavaScript from HTML content.
+
+    Removes <script> tags, <style> tags, and inline event handlers.
+
+    Args:
+        html_content: Raw HTML string.
+
+    Returns:
+        HTML with JavaScript removed.
+    """
+    html = re.sub(r"<script[^>]*>.*?</script>", "", html_content, flags=re.IGNORECASE | re.DOTALL)
+    html = re.sub(r"<style[^>]*>.*?</style>", "", html, flags=re.IGNORECASE | re.DOTALL)
+    html = re.sub(r"\s+on\w+\s*=\s*[\"'][^\"']*[\"']", "", html, flags=re.IGNORECASE)
+    html = re.sub(r"\s+on\w+\s*=\s*[^\s>]+", "", html, flags=re.IGNORECASE)
+    return html
+
+
 def _html_to_pdf_bytes(html_content: str) -> bytes | None:
     """Convert HTML content string to PDF bytes.
+
+    Note: JavaScript is stripped before rendering. Only plain text content
+    is converted to PDF.
 
     Args:
         html_content: HTML string content.
@@ -20,6 +41,8 @@ def _html_to_pdf_bytes(html_content: str) -> bytes | None:
         PDF bytes or None if conversion fails.
     """
     try:
+        html_content = _strip_js_from_html(html_content)
+
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("helvetica", size=12)

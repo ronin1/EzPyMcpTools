@@ -143,3 +143,16 @@ def test_to_html_file_with_dest_path() -> None:
         os.unlink(pdf_path)
         if os.path.exists(dest_path):
             os.unlink(dest_path)
+
+
+def test_strip_js_from_html() -> None:
+    html_with_js = (
+        "<html><head><style>body { color: red; }</style></head>"
+        '<body><p onclick="evil()">Hello</p>'
+        "<script>console.log('hello');</script></body></html>"
+    )
+    stripped = pdf_utils._strip_js_from_html(html_with_js)
+    assert "onclick" not in stripped
+    assert "<script>" not in stripped
+    assert "<style>" not in stripped
+    assert "Hello" in stripped
