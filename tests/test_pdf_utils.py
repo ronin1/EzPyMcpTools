@@ -64,5 +64,6 @@ def test_strip_js_from_html() -> None:
     stripped = pdf_utils._strip_js_from_html(html_with_js)
     assert "onclick" not in stripped
     assert "<script>" not in stripped
-    assert "<style>" not in stripped
+    assert "<style>" in stripped  # CSS should be preserved
+    assert "color: red" in stripped
     assert "Hello" in stripped

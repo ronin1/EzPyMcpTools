@@ -6,13 +6,13 @@ import base64
 import re
 from typing import Any
 
-from fpdf import FPDF
+from weasyprint import HTML
 
 
 def _strip_js_from_html(html_content: str) -> str:
     """Remove JavaScript from HTML content.
 
-    Removes <script> tags, <style> tags, and inline event handlers.
+    Removes <script> tags and inline event handlers. Keeps <style> for CSS.
 
     Args:
         html_content: Raw HTML string.
@@ -21,7 +21,6 @@ def _strip_js_from_html(html_content: str) -> str:
         HTML with JavaScript removed.
     """
     html = re.sub(r"<script[^>]*>.*?</script>", "", html_content, flags=re.IGNORECASE | re.DOTALL)
-    html = re.sub(r"<style[^>]*>.*?</style>", "", html, flags=re.IGNORECASE | re.DOTALL)
     html = re.sub(r"\s+on\w+\s*=\s*[\"'][^\"']*[\"']", "", html, flags=re.IGNORECASE)
     html = re.sub(r"\s+on\w+\s*=\s*[^\s>]+", "", html, flags=re.IGNORECASE)
     return html
@@ -30,8 +29,7 @@ def _strip_js_from_html(html_content: str) -> str:
 def _html_to_pdf_bytes(html_content: str) -> bytes | None:
     """Convert HTML content string to PDF bytes.
 
-    Note: JavaScript is stripped before rendering. Only plain text content
-    is converted to PDF.
+    Note: Uses WeasyPrint for proper HTML/CSS rendering. JavaScript is stripped.
 
     Args:
         html_content: HTML string content.
@@ -41,22 +39,8 @@ def _html_to_pdf_bytes(html_content: str) -> bytes | None:
     """
     try:
         html_content = _strip_js_from_html(html_content)
-
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("helvetica", size=12)
-
-        text = re.sub(r"<[^>]*>", " ", html_content)
-        text = " ".join(text.split())
-        safe_text = text.encode("latin-1", errors="replace").decode("latin-1")
-        pdf.multi_cell(0, 10, safe_text)
-
-        pdf_bytes = pdf.output()
-        if not isinstance(pdf_bytes, (bytes, bytearray)):
-            if isinstance(pdf_bytes, str):
-                return pdf_bytes.encode("latin-1")
-            return None
-        return bytes(pdf_bytes)
+        pdf_bytes = HTML(string=html_content).write_pdf()
+        return pdf_bytes
     except Exception:
         return None
 
@@ -81,8 +65,7 @@ def _pdf_bytes_to_html(pdf_bytes: bytes) -> str | None:
 def from_html(base64_html: str) -> dict[str, Any]:
     """Convert base64 encoded HTML content to a base64 encoded PDF.
 
-    Note: This implementation uses fpdf2 for maximum compatibility and avoids
-    system dependencies like Cairo. It performs basic text extraction from HTML.
+    Note: Uses WeasyPrint for proper HTML/CSS rendering. JavaScript is stripped.
 
     Args:
         base64_html: Base64 encoded string of the HTML content.
