@@ -26,3 +26,13 @@ def test_text_base64_encoding() -> None:
         result = text_utils.to_base64(tc)
         decoded = text_utils.from_base64(result["base64"])
         assert decoded["text"] == tc
+
+    # Test decoding with missing padding (uneven bits)
+    padding_test_cases = [
+        ("a", "YQ"),  # 'a' -> 'YQ==' (missing 2 '=')
+        ("ab", "YWI"),  # 'ab' -> 'YWIs' (missing 1 '=')
+        ("abc", "YWJj"),  # 'abc' -> 'YWJj' (no padding needed)
+    ]
+    for original, encoded in padding_test_cases:
+        decoded = text_utils.from_base64(encoded)
+        assert decoded["text"] == original

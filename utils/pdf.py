@@ -49,3 +49,29 @@ def from_html(base64_html: str) -> dict[str, Any]:
         return {"base64_pdf": base64_pdf}
     except Exception as exc:
         return {"error": f"An error occurred during conversion: {exc!s}"}
+
+
+def to_html(base64_pdf: str) -> dict[str, Any]:
+    """Convert base64 encoded PDF content back to a base64 encoded HTML string.
+
+    Note: This is a lossy conversion that extracts text from the PDF bytes.
+
+    Args:
+        base64_pdf: Base64 encoded string of the PDF content.
+
+    Returns:
+        Dict containing the base64 encoded HTML content under the key "base64_html".
+    """
+    try:
+        pdf_bytes = base64.b64decode(base64_pdf)
+        # Simple text extraction from PDF bytes (looking for strings between parentheses)
+        # This is a naive implementation as full PDF parsing requires heavy libraries
+        text_matches = re.findall(rb"\((.*?)\)", pdf_bytes)
+        extracted_text = " ".join([m.decode("latin-1", errors="replace") for m in text_matches])
+
+        # Wrap extracted text in basic HTML tags
+        html_content = f"<html><body><p>{extracted_text}</p></body></html>"
+        base64_html = base64.b64encode(html_content.encode("utf-8")).decode("utf-8")
+        return {"base64_html": base64_html}
+    except Exception as exc:
+        return {"error": f"An error occurred during conversion: {exc!s}"}

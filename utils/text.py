@@ -71,5 +71,5 @@ def from_base64(base64_str: str) -> dict[str, Any]:
     Returns:
         Dict with `text` as the decoded string.
     """
-    decoded = base64.b64decode(base64_str).decode("utf-8")
+    decoded = base64.b64decode(base64_str + "=" * (-len(base64_str) % 4)).decode("utf-8")
     return {"text": decoded}
