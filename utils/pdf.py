@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import base64
-import os
 import re
 from typing import Any
 
@@ -122,64 +121,3 @@ def to_html(base64_pdf: str) -> dict[str, Any]:
         return {"base64_html": base64_html}
     except Exception as exc:
         return {"error": f"An error occurred during conversion: {exc!s}"}
-
-
-def from_html_file(src_path: str, dest_path: str | None = None) -> dict[str, Any]:
-    """Read an HTML file and convert it to a PDF file.
-
-    Args:
-        src_path: Path to the input HTML file.
-        dest_path: Optional path for the output PDF file. Defaults to same name with .pdf extension.
-
-    Returns:
-        Dict with "success", "file_size", and "output_path" keys.
-    """
-    try:
-        with open(src_path, encoding="utf-8") as f:
-            html_content = f.read()
-
-        pdf_bytes = _html_to_pdf_bytes(html_content)
-        if pdf_bytes is None:
-            return {"success": False, "error": "Failed to generate PDF bytes", "file_size": 0}
-
-        output_path = dest_path if dest_path else os.path.splitext(src_path)[0] + ".pdf"
-        with open(output_path, "wb") as f:
-            f.write(pdf_bytes)
-
-        file_size = os.path.getsize(output_path)
-        return {"success": True, "file_size": file_size, "output_path": output_path}
-    except FileNotFoundError:
-        return {"success": False, "error": f"File not found: {src_path}", "file_size": 0}
-    except Exception as exc:
-        return {"success": False, "error": str(exc), "file_size": 0}
-
-
-def to_html_file(src_path: str, dest_path: str | None = None) -> dict[str, Any]:
-    """Read a PDF file and convert it to an HTML file.
-
-    Args:
-        src_path: Path to the input PDF file.
-        dest_path: Optional path for the output HTML file.
-            Defaults to same name with .html extension.
-
-    Returns:
-        Dict with "success", "file_size", and "output_path" keys.
-    """
-    try:
-        with open(src_path, "rb") as f:
-            pdf_bytes = f.read()
-
-        html_content = _pdf_bytes_to_html(pdf_bytes)
-        if html_content is None:
-            return {"success": False, "error": "Failed to extract HTML from PDF", "file_size": 0}
-
-        output_path = dest_path if dest_path else os.path.splitext(src_path)[0] + ".html"
-        with open(output_path, "w", encoding="utf-8") as f:
-            f.write(html_content)
-
-        file_size = os.path.getsize(output_path)
-        return {"success": True, "file_size": file_size, "output_path": output_path}
-    except FileNotFoundError:
-        return {"success": False, "error": f"File not found: {src_path}", "file_size": 0}
-    except Exception as exc:
-        return {"success": False, "error": str(exc), "file_size": 0}
