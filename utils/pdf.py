@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import base64
 import re
+from io import BytesIO
 from typing import Any
 
+from pypdf import PdfReader
 from weasyprint import HTML
 
 
@@ -55,9 +57,16 @@ def _pdf_bytes_to_html(pdf_bytes: bytes) -> str | None:
         HTML string content or None if conversion fails.
     """
     try:
-        text_matches = re.findall(rb"\((.*?)\)", pdf_bytes)
-        extracted_text = " ".join([m.decode("latin-1", errors="replace") for m in text_matches])
-        return f"<html><body><p>{extracted_text}</p></body></html>"
+        reader = PdfReader(BytesIO(pdf_bytes))
+        text_parts = []
+        for page in reader.pages:
+            text = page.extract_text()
+            if text:
+                text_parts.append(text)
+        extracted_text = "\n".join(text_parts)
+        safe_text = re.sub(r"<[^>]*>", " ", extracted_text)
+        safe_text = " ".join(safe_text.split())
+        return f"<html><body><p>{safe_text}</p></body></html>"
     except Exception:
         return None
 

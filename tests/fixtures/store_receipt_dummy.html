@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LOCAL STORE Receipt - DUMMY LOCATION</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; }
+        .receipt { border: 1px solid #ccc; padding: 20px; background: #f9f9f9; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .store-info { margin-bottom: 15px; }
+        .order-info { margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
+        .section-title { font-weight: bold; margin-top: 15px; margin-bottom: 10px; text-transform: uppercase; }
+        .item-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .item-name { flex: 1; }
+        .item-price { font-weight: bold; }
+        .totals { border-top: 2px solid #000; padding-top: 15px; margin-top: 15px; }
+        .total-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .payment-info { margin-top: 15px; border-top: 1px solid #ddd; padding-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="receipt">
+        <div class="header">
+            <h1>LOCAL STORE</h1>
+            <p>Expect Less. Pay More.</p>
+        </div>
+
+        <div class="store-info">
+            <strong>DUMMY CITY - 555-555-5555</strong><br>
+            123 Fake Street<br>
+            DUMMY CITY, TEST 12345<br>
+            <strong>Date:</strong> 01/01/2025 12:00 PM
+        </div>
+
+        <div class="order-info">
+            <strong>Order #:</strong> ORDER-XXXX-XXXX-XXXX-XXXX<br>
+            <strong>Total Items:</strong> 5
+        </div>
+
+        <div class="section-title">GROCERY</div>
+
+        <div class="item-row">
+            <span class="item-name">Vita Coco Coconut Water with Pressed Coconut - 33.8 fl oz Carton (2 @ $4.59 ea)</span>
+            <span class="item-price">$9.18</span>
+        </div>
+
+        <div class="item-row">
+            <span class="item-name">Simply Orange Pulp Free with Pineapple Juice - 52 fl oz</span>
+            <span class="item-price">$4.29</span>
+        </div>
+
+        <div class="item-row">
+            <span class="item-name">Coffee mate Natural Bliss Plant Based Vanilla Oat Milk Creamer - 1qt</span>
+            <span class="item-price">$5.29</span>
+        </div>
+
+        <div class="item-row">
+            <span class="item-name">Harvest Snaps Red Lentil Snack Crisps Tomato Basil - 3oz</span>
+            <span class="item-price">$2.99</span>
+        </div>
+
+        <div class="item-row">
+            <span class="item-name">Harvest Snaps Green Pea Snack Crisps Lightly Salted - 3.3oz</span>
+            <span class="item-price">$2.99</span>
+        </div>
+
+        <div class="section-title">HEALTH AND BEAUTY</div>
+
+        <div class="item-row">
+            <span class="item-name">Grin Oral Care Double Floss Picks - 150ct</span>
+            <span class="item-price">$5.59</span>
+        </div>
+
+        <div class="item-row">
+            <span class="item-name">Band-Aid Kids' Antiseptic Cleansing Foam - 2.3 fl oz</span>
+            <span class="item-price">$5.59</span>
+        </div>
+
+        <div class="item-row">
+            <span class="item-name">Acetaminophen Extra Strength Pain Reliever & Fever Reducer Caplets - 225ct - up&up™</span>
+            <span class="item-price">$3.59</span>
+        </div>
+
+        <div class="section-title">HOME</div>
+
+        <div class="item-row">
+            <span class="item-name">Ello Arabica 18oz Stainless Steel Vacuum Insulated Travel Mug Marble: Coffee Mugs Travel, Drink-Thru Lid, Hand Wash</span>
+            <span class="item-price">$17.99</span>
+        </div>
+
+        <div class="totals">
+            <div class="total-row">
+                <span>SUBTOTAL</span>
+                <span>$45.92</span>
+            </div>
+            <div class="total-row">
+                <span>T = CA TAX 9.50000 on $10.00</span>
+                <span>$0.95</span>
+            </div>
+            <div class="total-row" style="font-size: 18px; font-weight: bold;">
+                <span>TOTAL</span>
+                <span>$46.87</span>
+            </div>
+        </div>
+
+        <div class="payment-info">
+            <strong>PAYMENT SUMMARY:</strong><br>
+            Reusable Bag Discount: -$0.15<br>
+            American Express (*0004): $46.72<br>
+            AID: A000000003101001<br>
+            AUTH CODE: 123456
+        </div>
+
+        <div style="margin-top: 20px; font-size: 12px; color: #666;">
+            <p><strong>NOTES:</strong></p>
+            <ul>
+                <li>T = Taxable item</li>
+                <li>N = Nontaxable item</li>
+                <li>F = Food item</li>
+                <li>+ INDICATES HEALTH ITEM</li>
+                <li>When you return any item, your return credit will not include any promotional discount or coupon applied to the original order.</li>
+            </ul>
+        </div>
+
+        <div style="margin-top: 20px; text-align: center; font-size: 11px;">
+            REC#2-ORDER-XXXX-XXXX-XXXX-XXXX-X<br>
+            Help make your Target Run better. Take a 2 minute survey about today's trip at informtarget.com<br>
+            User ID: USER123 | Password: PASS456
+        </div>
+    </div>
+
+    <script>
+        // Auto-print when page loads (optional)
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                if(confirm('Would you like to print this receipt?')) {
+                    window.print();
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>
