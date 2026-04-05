@@ -1,2 +1,3 @@
 # debug sessions
 opencode -s ses_3b5317530gffZp1Qxp1XgpAjZj
+opencode -s ses_3b5317530gffZp1Qxp1XgpAjZj

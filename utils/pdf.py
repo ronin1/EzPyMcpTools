@@ -66,7 +66,7 @@ def _pdf_bytes_to_html(pdf_bytes: bytes) -> str | None:
         extracted_text = "\n".join(text_parts)
         safe_text = re.sub(r"<[^>]*>", " ", extracted_text)
         safe_text = " ".join(safe_text.split())
-        safe_text = re.escape(safe_text)
+        safe_text = safe_text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
         return f"<html><body><p>{safe_text}</p></body></html>"
     except Exception:
         return None
@@ -94,8 +94,8 @@ def from_html(base64_html: str) -> dict[str, Any]:
             return {"error": "Failed to generate PDF bytes"}
         base64_pdf = base64.b64encode(pdf_bytes).decode("utf-8")
         return {"base64_pdf": base64_pdf}
-    except Exception as exc:
-        return {"error": f"An error occurred during conversion: {exc!s}"}
+    except Exception:
+        return {"error": "An error occurred during conversion"}
 
 
 def to_html(base64_pdf: str) -> dict[str, Any]:
