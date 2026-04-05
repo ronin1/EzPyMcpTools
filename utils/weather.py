@@ -343,6 +343,9 @@ def current_with_forecast(
     # Extract location
     location = _find(r'<h2 class="panel-title"[^>]*>(.*?)</h2>', html)
 
+    # Extract location
+    location = _find(r'<h2 class="panel-title"[^>]*>(.*?)</h2>', html)
+
     # Resolve temperature unit
     norm = unit.strip().lower()
     if norm in ("c", "celsius"):
