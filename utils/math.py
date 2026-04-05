@@ -21,16 +21,18 @@ def multiply(a: float, b: float) -> dict[str, float]:
 
 def divide(a: float, b: float) -> dict[str, Any]:
     """Divide a by b."""
+    b = float(b)
     if b == 0:
         return {"error": "Division by zero"}
-    return {"result": float(a) / float(b)}
+    return {"result": float(a) / b}
 
 
 def modulo(a: float, b: float) -> dict[str, Any]:
     """Get remainder of a divided by b."""
+    b = float(b)
     if b == 0:
         return {"error": "Division by zero"}
-    return {"result": float(a) % float(b)}
+    return {"result": float(a) % b}
 
 
 def power(base: float, exponent: float) -> dict[str, float]:
