@@ -13,6 +13,8 @@ def words_count(text: str) -> dict[str, Any]:
     Returns:
         Dict with `words` as the word count.
     """
+    if not isinstance(text, str):
+        return {"error": "Input must be a string"}
     return {"words": len(text.split())}
 
 
@@ -26,6 +28,8 @@ def characters_count(text: str) -> dict[str, Any]:
         Dict with `characters.with_spaces` (total characters) and
         `characters.excluding_spaces` (characters without spaces).
     """
+    if not isinstance(text, str):
+        return {"error": "Input must be a string"}
     return {
         "characters": {
             "with_spaces": len(text),
@@ -43,6 +47,8 @@ def show_characters(word: str) -> dict[str, Any]:
     Returns:
         Dict with the original `word` and a `characters` array.
     """
+    if not isinstance(word, str):
+        return {"error": "Input must be a string"}
     return {
         "word": word,
         "characters": list(word),

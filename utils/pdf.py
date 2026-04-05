@@ -82,6 +82,10 @@ def from_html(base64_html: str) -> dict[str, Any]:
     Returns:
         Dict containing the base64 encoded PDF content under the key "base64_pdf".
     """
+    if not isinstance(base64_html, str):
+        return {"error": "Input must be a base64 encoded string"}
+    if not base64_html:
+        return {"error": "Input cannot be empty"}
     try:
         html_content = base64.b64decode(base64_html).decode("utf-8")
         pdf_bytes = _html_to_pdf_bytes(html_content)
@@ -104,6 +108,10 @@ def to_html(base64_pdf: str) -> dict[str, Any]:
     Returns:
         Dict containing the base64 encoded HTML content under the key "base64_html".
     """
+    if not isinstance(base64_pdf, str):
+        return {"error": "Input must be a base64 encoded string"}
+    if not base64_pdf:
+        return {"error": "Input cannot be empty"}
     try:
         pdf_bytes = base64.b64decode(base64_pdf)
         html_content = _pdf_bytes_to_html(pdf_bytes)
