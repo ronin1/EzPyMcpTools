@@ -1,2 +1,2 @@
 # debug sessions
-opencode -s ses_2a4206429ffeYooPrx0wnFopZi
+opencode -s ses_3b5317530gffZp1Qxp1XgpAjZj
