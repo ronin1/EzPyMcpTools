@@ -4,9 +4,15 @@ unexport VIRTUAL_ENV
 OLLAMA_MODEL ?= qwen3-vl:8b
 #OLLAMA_MODEL ?= llama4:16x17b
 
-.PHONY: setup py_req user_info run test test_user_info mcp_config config inspector lint build docker-build docker-test
+.PHONY: setup py_req user_info run test test_user_info mcp_config config inspector lint build docker-build docker-test weasyprint_deps
 
-setup: py_req user_info test_user_info mcp_config
+setup: py_req weasyprint_deps user_info test_user_info mcp_config
+
+weasyprint_deps:
+	@if command -v brew >/dev/null 2>&1; then \
+		brew install gtk+3 cairo pango libffi pygobject3 2>/dev/null || echo "WeasyPrint deps may already be installed"; \
+	fi
+	@export DYLD_LIBRARY_PATH="/opt/homebrew/lib:$$DYLD_LIBRARY_PATH" && echo "Set DYLD_LIBRARY_PATH for WeasyPrint"
 
 py_req:
 	@python3 -c "import sys; v=sys.version_info; exit(0 if v >= (3,12) else 1)" 2>/dev/null \
@@ -76,7 +82,7 @@ inspector:
 	@npx @modelcontextprotocol/inspector
 
 docker-build: user_info
-	@docker build -t ezpy-tools:alpine .
+	@docker build -t ezpy-tools .
 
 build: docker-build
 

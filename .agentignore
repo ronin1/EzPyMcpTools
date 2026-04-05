@@ -1,0 +1,119 @@
+# --------------------
+# Agent / LLM Session Files
+# --------------------
+# opencode session files
+session-*.md
+session/**/*.md
+
+# Agent configuration and context
+AGENTS.md
+.readthedocs.yaml
+.readthedocs.yml
+
+# Documentation (usually not needed for agent context)
+*.md
+*.rst
+docs/
+doc/
+
+# Testing / Coverage
+**/.pytest_cache/
+**/.coverage
+**/htmlcov/
+**/.tox/
+**/.nox/
+**/.hypothesis/
+.coverage.*
+coverage.xml
+
+# Type checking
+**/.mypy_cache/
+**/.pytype/
+**/.pyre/
+**/.ruff_cache/
+
+# Python
+**/__pycache__/
+**/*.py[cod]
+**/$py.class
+**/*.so
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/*.egg-info/
+**/*.egg
+build/
+dist/
+site/
+pip-wheel-metadata/
+.Python
+.python-version
+
+# Virtual environments
+**/.venv/
+**/venv/
+**/ENV/
+venv/
+env/
+ENV/
+
+# IDE / Editor
+**/.vscode/
+**/.idea/
+**/*.swp
+**/*.swo
+**/*~
+**/.DS_Store
+**/._*
+**/.AppleDouble
+**/.LSOverride
+**/.Spotlight-V100
+**/.Trashes
+**/.fseventsd
+Icon?
+
+# uv
+.uv_cache/
+.uv/
+
+# Node
+node_modules/
+
+# Config files that might confuse agents
+*.data.json
+*.env
+*.env.*
+!.env.example
+
+# Docker
+Dockerfile
+.dockerignore
+.gitignore
+
+# GitHub
+.github/
+.git/
+
+# Cursor (AI editor)
+.cursor/
+
+# Screenshots and images
+screenshots/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+
+# Logs
+**/*.log
+
+# Backup files
+**/*.py.backup
+**/*.py.bak
+**/*.tmp/
+
+# README files (usually not needed for agent execution)
+README*
+readme*
+doc/

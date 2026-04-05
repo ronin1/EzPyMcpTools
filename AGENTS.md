@@ -171,3 +171,4 @@ utils/
 ### CI Requirements
 - All PRs run `make lint` and `make docker-test`
 - Lint auto-fixes are auto-committed back to PR branches
+- **On each change**: run `make lint && make test && make docker-test` to ensure all checks pass

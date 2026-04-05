@@ -261,7 +261,9 @@ def coordinates_by_name(name: str, country: str = "", limit: int = 3) -> dict[st
             if not has_coords:
                 r["error"] = "coordinates could not be extracted for this result"
 
-        if not results or all("error" in r for r in results):
+        valid_results = [r for r in results if "error" not in r]
+
+        if not valid_results:
             return {
                 "error": f"No results with extractable coordinates for '{name}'"
                 + (f" in country '{country}'" if country else ""),
@@ -273,8 +275,8 @@ def coordinates_by_name(name: str, country: str = "", limit: int = 3) -> dict[st
 
         return {
             "query": result_query,
-            "results": results,
-            "count": len(results),
+            "results": valid_results,
+            "count": len(valid_results),
         }
 
     except urllib.error.URLError as e:

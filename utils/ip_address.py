@@ -35,7 +35,11 @@ def public_ipv4(source_url: str = "") -> dict[str, Any]:
     # ISP is in the "org" field,
     # typically prefixed with AS number (e.g. "AS7018 AT&T")
     org = data.get("org", "")
-    isp_name = org.split(" ", 1)[1] if " " in org else org
+    if org:
+        parts = org.split(" ", 1)
+        isp_name = parts[1] if len(parts) > 1 else parts[0]
+    else:
+        isp_name = ""
 
     return {
         "public_ip": data.get("ip", ""),

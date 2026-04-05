@@ -12,10 +12,25 @@ from pathlib import Path
 
 def _run_local_tests(project_root: Path) -> int:
     """Run pytest locally using the project environment."""
+    env = os.environ.copy()
+    if sys.platform == "darwin":
+        env["DYLD_LIBRARY_PATH"] = "/opt/homebrew/lib:" + env.get("DYLD_LIBRARY_PATH", "")
+    elif sys.platform == "linux":
+        lib_paths = [
+            "/usr/lib",
+            "/usr/local/lib",
+            "/usr/lib/x86_64-linux-gnu",
+            "/usr/lib/aarch64-linux-gnu",
+        ]
+        existing = env.get("LD_LIBRARY_PATH", "")
+        new_paths = ":".join(p for p in lib_paths if p not in existing)
+        if new_paths:
+            env["LD_LIBRARY_PATH"] = new_paths + (":" + existing if existing else "")
     cmd = ["uv", "run", "pytest", "-q", "tests"]
     result = subprocess.run(
         cmd,
         cwd=project_root,
+        env=env,
         check=False,
     )
     return result.returncode
@@ -23,7 +38,7 @@ def _run_local_tests(project_root: Path) -> int:
 
 def _run_docker_tests(project_root: Path) -> int:
     """Run pytest in the Docker image."""
-    image = os.environ.get("EZPY_TOOLS_IMAGE", "ezpy-tools:alpine")
+    image = os.environ.get("EZPY_TOOLS_IMAGE", "ezpy-tools")
     user_data = Path(
         os.environ.get("EZPY_USER_DATA", str(project_root / "user.data.json"))
     ).resolve()

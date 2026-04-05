@@ -5,6 +5,9 @@ from typing import Any
 from zoneinfo import ZoneInfo, available_timezones
 
 # Common abbreviation -> IANA timezone mapping.
+
+
+# Common abbreviation -> IANA timezone mapping.
 # Many abbreviations are ambiguous (e.g. CST = US Central,
 # China Standard, or Cuba Standard). This maps to the most
 # commonly expected IANA zone for each.
@@ -83,29 +86,318 @@ def _resolve_timezone(
     return None
 
 
+# Common country name -> ISO 3166-1 alpha-2 mapping.
+# Used as fallback when /usr/share/zoneinfo/iso3166.tab is not available.
+# Covers ~200 countries (99% of use cases).
+_ISO_3166_COUNTRIES: dict[str, str] = {
+    "afghanistan": "af",
+    "albania": "al",
+    "algeria": "dz",
+    "andorra": "ad",
+    "angola": "ao",
+    "argentina": "ar",
+    "armenia": "am",
+    "australia": "au",
+    "austria": "at",
+    "azerbaijan": "az",
+    "bahamas": "bs",
+    "bahrain": "bh",
+    "bangladesh": "bd",
+    "barbados": "bb",
+    "belarus": "by",
+    "belgium": "be",
+    "belize": "bz",
+    "benin": "bj",
+    "bhutan": "bt",
+    "bolivia": "bo",
+    "bosnia and herzegovina": "ba",
+    "botswana": "bw",
+    "brazil": "br",
+    "brunei": "bn",
+    "bulgaria": "bg",
+    "burkina faso": "bf",
+    "burundi": "bi",
+    "cabo verde": "cv",
+    "cambodia": "kh",
+    "cameroon": "cm",
+    "canada": "ca",
+    "central african republic": "cf",
+    "chad": "td",
+    "chile": "cl",
+    "china": "cn",
+    "colombia": "co",
+    "comoros": "km",
+    "congo": "cg",
+    "costa rica": "cr",
+    "croatia": "hr",
+    "cuba": "cu",
+    "cyprus": "cy",
+    "czech republic": "cz",
+    "denmark": "dk",
+    "djibouti": "dj",
+    "dominica": "dm",
+    "dominican republic": "do",
+    "ecuador": "ec",
+    "egypt": "eg",
+    "el salvador": "sv",
+    "equatorial guinea": "gq",
+    "eritrea": "er",
+    "estonia": "ee",
+    "eswatini": "sz",
+    "ethiopia": "et",
+    "fiji": "fj",
+    "finland": "fi",
+    "france": "fr",
+    "gabon": "ga",
+    "gambia": "gm",
+    "georgia": "ge",
+    "germany": "de",
+    "ghana": "gh",
+    "greece": "gr",
+    "grenada": "gd",
+    "guatemala": "gt",
+    "guinea": "gn",
+    "guyana": "gy",
+    "haiti": "ht",
+    "honduras": "hn",
+    "hungary": "hu",
+    "iceland": "is",
+    "india": "in",
+    "indonesia": "id",
+    "iran": "ir",
+    "iraq": "iq",
+    "ireland": "ie",
+    "israel": "il",
+    "italy": "it",
+    "jamaica": "jm",
+    "japan": "jp",
+    "jordan": "jo",
+    "kazakhstan": "kz",
+    "kenya": "ke",
+    "kiribati": "ki",
+    "korea north": "kp",
+    "korea south": "kr",
+    "kuwait": "kw",
+    "kyrgyzstan": "kg",
+    "laos": "la",
+    "latvia": "lv",
+    "lebanon": "lb",
+    "lesotho": "ls",
+    "liberia": "lr",
+    "libya": "ly",
+    "liechtenstein": "li",
+    "lithuania": "lt",
+    "luxembourg": "lu",
+    "madagascar": "mg",
+    "malawi": "mw",
+    "malaysia": "my",
+    "maldives": "mv",
+    "mali": "ml",
+    "malta": "mt",
+    "marshall islands": "mh",
+    "mauritania": "mr",
+    "mauritius": "mu",
+    "mexico": "mx",
+    "micronesia": "fm",
+    "moldova": "md",
+    "monaco": "mc",
+    "mongolia": "mn",
+    "montenegro": "me",
+    "morocco": "ma",
+    "mozambique": "mz",
+    "myanmar": "mm",
+    "namibia": "na",
+    "nauru": "nr",
+    "nepal": "np",
+    "netherlands": "nl",
+    "new zealand": "nz",
+    "nicaragua": "ni",
+    "niger": "ne",
+    "nigeria": "ng",
+    "north macedonia": "mk",
+    "norway": "no",
+    "oman": "om",
+    "pakistan": "pk",
+    "palau": "pw",
+    "palestine": "ps",
+    "panama": "pa",
+    "papua new guinea": "pg",
+    "paraguay": "py",
+    "peru": "pe",
+    "philippines": "ph",
+    "poland": "pl",
+    "portugal": "pt",
+    "qatar": "qa",
+    "romania": "ro",
+    "russia": "ru",
+    "rwanda": "rw",
+    "saint kitts and nevis": "kn",
+    "saint lucia": "lc",
+    "saint vincent and the grenadines": "vc",
+    "samoa": "ws",
+    "san marino": "sm",
+    "sao tome and principe": "st",
+    "saudi arabia": "sa",
+    "senegal": "sn",
+    "serbia": "rs",
+    "seychelles": "sc",
+    "sierra leone": "sl",
+    "singapore": "sg",
+    "slovakia": "sk",
+    "slovenia": "si",
+    "solomon islands": "sb",
+    "somalia": "so",
+    "south africa": "za",
+    "south sudan": "ss",
+    "spain": "es",
+    "sri lanka": "lk",
+    "sudan": "sd",
+    "suriname": "sr",
+    "sweden": "se",
+    "switzerland": "ch",
+    "syria": "sy",
+    "taiwan": "tw",
+    "tajikistan": "tj",
+    "tanzania": "tz",
+    "thailand": "th",
+    "timor leste": "tl",
+    "togo": "tg",
+    "tonga": "to",
+    "trinidad and tobago": "tt",
+    "tunisia": "tn",
+    "turkey": "tr",
+    "turkmenistan": "tm",
+    "tuvalu": "tv",
+    "uganda": "ug",
+    "ukraine": "ua",
+    "united arab emirates": "ae",
+    "united kingdom": "gb",
+    "united states": "us",
+    "uruguay": "uy",
+    "uzbekistan": "uz",
+    "vanuatu": "vu",
+    "vatican city": "va",
+    "venezuela": "ve",
+    "vietnam": "vn",
+    "yemen": "ye",
+    "zambia": "zm",
+    "zimbabwe": "zw",
+}
+
+
 def _get_country_codes() -> dict[str, str]:
-    """Parse iso3166.tab to build a country-name -> country-code mapping."""
-    mapping = {}
-    with open("/usr/share/zoneinfo/iso3166.tab", encoding="utf-8") as f:
-        for line in f:
-            if line.startswith("#") or not line.strip():
-                continue
-            code, name = line.strip().split("\t", 1)
-            mapping[name.lower()] = code
-    return mapping
+    """Parse iso3166.tab to build a country-name -> country-code mapping.
+
+    Tries to read from system file first, falls back to embedded mapping.
+    """
+    try:
+        with open("/usr/share/zoneinfo/iso3166.tab", encoding="utf-8") as f:
+            mapping: dict[str, str] = {}
+            for line in f:
+                if line.startswith("#") or not line.strip():
+                    continue
+                code, name = line.strip().split("\t", 1)
+                mapping[name.lower()] = code
+            return mapping
+    except (FileNotFoundError, OSError):
+        return _ISO_3166_COUNTRIES
 
 
 def _get_zone_tab() -> dict[str, list[str]]:
-    """Parse zone.tab to build a country-code -> timezones mapping."""
-    mapping: dict[str, list[str]] = {}
-    with open("/usr/share/zoneinfo/zone.tab", encoding="utf-8") as f:
-        for line in f:
-            if line.startswith("#") or not line.strip():
-                continue
-            parts = line.strip().split("\t")
-            code, tz_name = parts[0], parts[2]
-            mapping.setdefault(code, []).append(tz_name)
-    return mapping
+    """Parse zone.tab to build a country-code -> timezones mapping.
+
+    Tries to read from system file first, falls back to embedded mapping.
+    """
+    try:
+        mapping: dict[str, list[str]] = {}
+        with open("/usr/share/zoneinfo/zone.tab", encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("#") or not line.strip():
+                    continue
+                parts = line.strip().split("\t")
+                code, tz_name = parts[0], parts[2]
+                mapping.setdefault(code, []).append(tz_name)
+        return mapping
+    except (FileNotFoundError, OSError):
+        # Fallback: common timezones by country (non-exhaustive)
+        return {
+            "US": [
+                "America/New_York",
+                "America/Chicago",
+                "America/Denver",
+                "America/Los_Angeles",
+                "America/Anchorage",
+                "Pacific/Honolulu",
+                "America/Phoenix",
+                "America/Indiana/Indianapolis",
+            ],
+            "CA": [
+                "America/Toronto",
+                "America/Vancouver",
+                "America/Winnipeg",
+                "America/Edmonton",
+                "America/Halifax",
+                "America/St_Johns",
+            ],
+            "GB": ["Europe/London"],
+            "FR": ["Europe/Paris"],
+            "DE": ["Europe/Berlin"],
+            "IT": ["Europe/Rome"],
+            "ES": ["Europe/Madrid"],
+            "JP": ["Asia/Tokyo"],
+            "AU": ["Australia/Sydney", "Australia/Melbourne", "Australia/Brisbane"],
+            "CN": ["Asia/Shanghai"],
+            "IN": ["Asia/Kolkata"],
+            "BR": ["America/Sao_Paulo"],
+            "MX": ["America/Mexico_City"],
+            "RU": ["Europe/Moscow"],
+            "ZA": ["Africa/Johannesburg"],
+            "EG": ["Africa/Cairo"],
+            "AE": ["Asia/Dubai"],
+            "SA": ["Asia/Riyadh"],
+            "AR": ["America/Argentina/Buenos_Aires"],
+            "CL": ["America/Santiago"],
+            "CO": ["America/Bogota"],
+            "PE": ["America/Lima"],
+            "VE": ["America/Caracas"],
+            "NL": ["Europe/Amsterdam"],
+            "BE": ["Europe/Brussels"],
+            "SE": ["Europe/Stockholm"],
+            "NO": ["Europe/Oslo"],
+            "DK": ["Europe/Copenhagen"],
+            "FI": ["Europe/Helsinki"],
+            "PL": ["Europe/Warsaw"],
+            "AT": ["Europe/Vienna"],
+            "CH": ["Europe/Zurich"],
+            "PT": ["Europe/Lisbon"],
+            "GR": ["Europe/Athens"],
+            "CZ": ["Europe/Prague"],
+            "HU": ["Europe/Budapest"],
+            "RO": ["Europe/Bucharest"],
+            "SK": ["Europe/Bratislava"],
+            "BG": ["Europe/Sofia"],
+            "HR": ["Europe/Zagreb"],
+            "SI": ["Europe/Ljubljana"],
+            "LT": ["Europe/Vilnius"],
+            "LV": ["Europe/Riga"],
+            "EE": ["Europe/Tallinn"],
+            "UA": ["Europe/Kyiv"],
+            "TR": ["Europe/Istanbul"],
+            "IL": ["Asia/Jerusalem"],
+            "KZ": ["Asia/Almaty"],
+            "SG": ["Asia/Singapore"],
+            "TH": ["Asia/Bangkok"],
+            "MY": ["Asia/Kuala_Lumpur"],
+            "PH": ["Asia/Manila"],
+            "ID": ["Asia/Jakarta"],
+            "VN": ["Asia/Ho_Chi_Minh"],
+            "NG": ["Africa/Lagos"],
+            "KE": ["Africa/Nairobi"],
+            "ET": ["Africa/Addis_Ababa"],
+            "MA": ["Africa/Casablanca"],
+            "DZ": ["Africa/Algiers"],
+            "TN": ["Africa/Tunis"],
+        }
 
 
 def _detect_country_code_from_locale() -> str:
@@ -197,48 +489,9 @@ def _get_local_iana_timezone() -> str:
       4. timedatectl (systemd-based Linux)
       5. Fallback to abbreviation
     """
-    import os
-    import time
+    from utils._timezone_utils import _get_local_iana_timezone as _get_local_iana_timezone_impl
 
-    # 1. TZ env var
-    tz_env = os.environ.get("TZ", "")
-    if tz_env:
-        return tz_env
-
-    # 2. /etc/localtime symlink (macOS + many Linux)
-    link = "/etc/localtime"
-    if os.path.islink(link):
-        target = os.path.realpath(link)
-        marker = "/zoneinfo/"
-        if marker in target:
-            return target.split(marker, 1)[1]
-
-    # 3. /etc/timezone (Debian/Ubuntu)
-    tz_file = "/etc/timezone"
-    if os.path.isfile(tz_file):
-        with open(tz_file, encoding="utf-8") as f:
-            tz = f.read().strip()
-            if tz:
-                return tz
-
-    # 4. timedatectl (systemd-based Linux)
-    import subprocess
-
-    try:
-        r = subprocess.run(
-            ["timedatectl", "show", "-p", "Timezone", "--value"],
-            capture_output=True,
-            text=True,
-            timeout=5,
-            check=False,
-        )
-        if r.returncode == 0 and r.stdout.strip():
-            return r.stdout.strip()
-    except OSError:
-        pass
-
-    # 5. Fallback to abbreviation
-    return time.tzname[0]
+    return _get_local_iana_timezone_impl()
 
 
 def configured_timezone() -> dict[str, str]:
