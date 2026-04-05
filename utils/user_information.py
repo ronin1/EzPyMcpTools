@@ -196,14 +196,11 @@ def _ensure_user_info() -> None:
 
 def _get_timezone() -> str:
     """Get current system IANA timezone if available."""
-    try:
-        from utils.datetime import _get_local_iana_timezone
+    from utils._timezone_utils import _get_local_iana_timezone
 
-        tz = _get_local_iana_timezone().strip()
-        if tz:
-            return tz
-    except Exception:
-        pass
+    tz = _get_local_iana_timezone().strip()
+    if tz:
+        return tz
     return "UTC"
 
 
