@@ -54,4 +54,4 @@ session/**/*.md
 readme.MD
 AGENTS.md
 **/*.py.backup
-**/*.py.bak
+**/*.py.bakopencode_sessions.txt
