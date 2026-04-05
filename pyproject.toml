@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.12"
 dependencies = [
-    "fastmcp==3.1.0",
+    "fastmcp==3.2.0",
     "fpdf2>=2.8.7",
     "mistral-common>=1.9.1",
     "pypdf>=6.9.2",
