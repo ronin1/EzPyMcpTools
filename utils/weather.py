@@ -336,11 +336,8 @@ def current_with_forecast(
     except Exception as e:
         return {"error": f"Failed to fetch weather: {e}"}
 
-    # Convert to markdown as intermediate representation
-    markdown = _html_to_markdown(html)
-
     # Check if the page returned usable data
-    if not markdown or "forecast" not in markdown.lower():
+    if not html or "seven-day-forecast" not in html:
         return {"error": ("No forecast data found. Coordinates may be outside the US or invalid.")}
 
     # Extract location
