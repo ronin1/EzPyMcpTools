@@ -64,6 +64,8 @@ def to_base64(text: str) -> dict[str, Any]:
     Returns:
         Dict with `base64` as the encoded string.
     """
+    if not isinstance(text, str):
+        return {"error": "Input must be a string"}
     encoded = base64.b64encode(text.encode("utf-8")).decode("utf-8")
     return {"base64": encoded}
 
