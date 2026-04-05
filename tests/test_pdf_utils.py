@@ -31,9 +31,8 @@ def test_to_html_success() -> None:
     result = pdf_utils.to_html(pdf_res["base64_pdf"])
     assert "base64_html" in result
     decoded_html = base64.b64decode(result["base64_html"]).decode()
-    # HTML escaping may add backslash escapes, so check for the words separately
-    assert "Hello" in decoded_html
-    assert "World" in decoded_html
+    # The round-tripped HTML should preserve the original phrase.
+    assert "Hello World" in decoded_html
 
 
 def test_to_html_invalid_base64() -> None:
