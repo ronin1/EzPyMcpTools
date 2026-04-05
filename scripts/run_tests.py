@@ -38,7 +38,7 @@ def _run_local_tests(project_root: Path) -> int:
 
 def _run_docker_tests(project_root: Path) -> int:
     """Run pytest in the Docker image."""
-    image = os.environ.get("EZPY_TOOLS_IMAGE", "ezpy-tools:debian")
+    image = os.environ.get("EZPY_TOOLS_IMAGE", "ezpy-tools")
     user_data = Path(
         os.environ.get("EZPY_USER_DATA", str(project_root / "user.data.json"))
     ).resolve()

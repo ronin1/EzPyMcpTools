@@ -82,7 +82,7 @@ inspector:
 	@npx @modelcontextprotocol/inspector
 
 docker-build: user_info
-	@docker build -t ezpy-tools:debian .
+	@docker build -t ezpy-tools .
 
 build: docker-build
 
