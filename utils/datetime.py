@@ -297,10 +297,10 @@ def _get_country_codes() -> dict[str, str]:
                 if line.startswith("#") or not line.strip():
                     continue
                 code, name = line.strip().split("\t", 1)
-                mapping[name.lower()] = code
+                mapping[name.lower()] = code.upper()
             return mapping
     except (FileNotFoundError, OSError):
-        return _ISO_3166_COUNTRIES
+        return {k: v.upper() for k, v in _ISO_3166_COUNTRIES.items()}
 
 
 def _get_zone_tab() -> dict[str, list[str]]:

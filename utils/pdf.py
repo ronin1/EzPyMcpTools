@@ -66,6 +66,7 @@ def _pdf_bytes_to_html(pdf_bytes: bytes) -> str | None:
         extracted_text = "\n".join(text_parts)
         safe_text = re.sub(r"<[^>]*>", " ", extracted_text)
         safe_text = " ".join(safe_text.split())
+        safe_text = re.escape(safe_text)
         return f"<html><body><p>{safe_text}</p></body></html>"
     except Exception:
         return None
@@ -87,7 +88,7 @@ def from_html(base64_html: str) -> dict[str, Any]:
     if not base64_html:
         return {"error": "Input cannot be empty"}
     try:
-        html_content = base64.b64decode(base64_html).decode("utf-8")
+        html_content = base64.b64decode(base64_html, validate=True).decode("utf-8")
         pdf_bytes = _html_to_pdf_bytes(html_content)
         if pdf_bytes is None:
             return {"error": "Failed to generate PDF bytes"}

@@ -32,15 +32,18 @@ def _get_local_iana_timezone() -> str:
     # 3. /etc/timezone (Debian/Ubuntu)
     tz_file = "/etc/timezone"
     if os.path.isfile(tz_file):
-        with open(tz_file, encoding="utf-8") as f:
-            tz = f.read().strip()
-            if tz:
-                return tz
+        try:
+            with open(tz_file, encoding="utf-8") as f:
+                tz = f.read().strip()
+                if tz:
+                    return tz
+        except (OSError, PermissionError):
+            pass
 
     # 4. timedatectl (systemd-based Linux)
-    try:
-        import subprocess
+    import subprocess
 
+    try:
         r = subprocess.run(
             ["timedatectl", "show", "-p", "Timezone", "--value"],
             capture_output=True,
@@ -50,7 +53,7 @@ def _get_local_iana_timezone() -> str:
         )
         if r.returncode == 0 and r.stdout.strip():
             return r.stdout.strip()
-    except OSError:
+    except (OSError, subprocess.TimeoutExpired):
         pass
 
     # 5. Fallback to abbreviation
