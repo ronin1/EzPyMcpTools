@@ -14,6 +14,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libgdk-pixbuf2.0-dev \
         gobject-introspection \
         pkg-config \
+        tesseract-ocr \
+        tesseract-ocr-eng \
     && rm -rf /var/lib/apt/lists/* \
     && pip install --no-cache-dir uv
 

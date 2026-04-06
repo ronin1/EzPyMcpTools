@@ -61,7 +61,7 @@ jobs:
         with:
           context: .
           load: true
-          tags: ezpy-tools:alpine
+          tags: ezpy-tools
           cache-from: type=gha,scope=ezpy-tools
           cache-to: type=gha,mode=max,scope=ezpy-tools
 
@@ -80,8 +80,8 @@ jobs:
           echo "${{ secrets.GITHUB_TOKEN }}" \
             | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
-          docker tag ezpy-tools:alpine "${GHCR_REPO_LOWER}:latest"
-          docker tag ezpy-tools:alpine "${GHCR_REPO_LOWER}:sha-${SHORT_SHA}"
+          docker tag ezpy-tools "${GHCR_REPO_LOWER}:latest"
+          docker tag ezpy-tools "${GHCR_REPO_LOWER}:sha-${SHORT_SHA}"
 
           docker push "${GHCR_REPO_LOWER}:latest"
           docker push "${GHCR_REPO_LOWER}:sha-${SHORT_SHA}"

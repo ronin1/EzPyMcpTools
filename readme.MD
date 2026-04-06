@@ -71,7 +71,7 @@ After pulling this project from GitHub:
         "-i",
         "-v",
         "/absolute/path/to/tools/user.data.json:/app/user.data.json:ro",
-        "ezpy-tools:alpine"
+        "ezpy-tools"
       ]
     }
   }
@@ -111,7 +111,7 @@ By choosing **Ollama**, we assume you know what you're doing:
 - *WARNING:* This MCP server has no authentication built in currently. Please do not run in `http` or `sse` protocol & expose it to the open web. You *will* get hacked.
 - See Anthropic [MCP specs](https://modelcontextprotocol.io/specification/2025-06-18/basic) for more info.
 
-### Docker (Alpine) for FastMCP `stdio`
+### Docker for FastMCP `stdio`
 
 - This is the recommended way to run this project in production-like local usage.
 
@@ -132,7 +132,7 @@ make docker-test
 ```bash
 docker run --rm -i \
   -v "$PWD/user.data.json:/app/user.data.json:ro" \
-  ezpy-tools:alpine
+  ezpy-tools
 ```
 
 - Example MCP config (LmStudio/Ollama host) for Docker-based `stdio`:
@@ -148,7 +148,7 @@ docker run --rm -i \
         "-i",
         "-v",
         "/absolute/path/to/tools/user.data.json:/app/user.data.json:ro",
-        "ezpy-tools:alpine"
+        "ezpy-tools"
       ]
     }
   }
@@ -160,7 +160,7 @@ docker run --rm -i \
 ```bash
 docker run --rm \
   -v "$PWD/user.data.json:/app/user.data.json:ro" \
-  ezpy-tools:alpine \
+  ezpy-tools \
   uv run python utils.py datetime__current America/Los_Angeles
 ```
 

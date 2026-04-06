@@ -4,8 +4,21 @@ from __future__ import annotations
 
 import base64
 import pathlib
+from io import BytesIO
+
+from PIL import Image
 
 from utils import pdf as pdf_utils
+
+
+def _make_base64_png(color: tuple[int, int, int] = (200, 50, 60)) -> str:
+    image = Image.new("RGB", (48, 32), color)
+    try:
+        png_buffer = BytesIO()
+        image.save(png_buffer, format="PNG")
+        return base64.b64encode(png_buffer.getvalue()).decode()
+    finally:
+        image.close()
 
 
 def test_from_html_success() -> None:
@@ -18,6 +31,17 @@ def test_from_html_success() -> None:
 
 def test_from_html_invalid_base64() -> None:
     result = pdf_utils.from_html("not-base64")
+    assert "error" in result
+
+
+def test_from_png_success() -> None:
+    result = pdf_utils.from_png(_make_base64_png())
+    assert "base64_pdf" in result
+    assert base64.b64decode(result["base64_pdf"]).startswith(b"%PDF")
+
+
+def test_from_png_invalid_base64() -> None:
+    result = pdf_utils.from_png("not-base64")
     assert "error" in result
 
 
@@ -35,9 +59,82 @@ def test_to_html_success() -> None:
     assert "Hello World" in decoded_html
 
 
+def test_to_html_returns_embedded_source_html() -> None:
+    html = (
+        "<html><head><style>body { background: #123456; color: white; }</style></head>"
+        '<body><h1 onclick="evil()">Styled Receipt</h1>'
+        "<script>console.log('nope')</script></body></html>"
+    )
+    base64_html = base64.b64encode(html.encode()).decode()
+    pdf_res = pdf_utils.from_html(base64_html)
+    assert "base64_pdf" in pdf_res
+
+    result = pdf_utils.to_html(pdf_res["base64_pdf"])
+    assert "base64_html" in result
+
+    decoded_html = base64.b64decode(result["base64_html"]).decode()
+    assert "background: #123456" in decoded_html
+    assert "Styled Receipt" in decoded_html
+    assert "<script" not in decoded_html
+    assert "onclick" not in decoded_html
+
+
 def test_to_html_invalid_base64() -> None:
     result = pdf_utils.to_html("not-base64")
     assert "error" in result
+
+
+def test_to_html_renders_pages_for_pdf_without_embedded_html() -> None:
+    pdf_res = pdf_utils.from_png(_make_base64_png())
+    assert "base64_pdf" in pdf_res
+
+    result = pdf_utils.to_html(pdf_res["base64_pdf"])
+    assert "base64_html" in result
+
+    decoded_html = base64.b64decode(result["base64_html"]).decode()
+    assert 'data-render-mode="rendered-pages"' in decoded_html
+    assert "data:image/png;base64," in decoded_html
+
+
+def test_to_html_uses_ocr_when_text_extraction_is_missing(monkeypatch) -> None:
+    pdf_res = pdf_utils.from_png(_make_base64_png())
+    assert "base64_pdf" in pdf_res
+
+    monkeypatch.setattr(pdf_utils, "_extract_pdf_text", lambda _: None)
+    monkeypatch.setattr(pdf_utils, "_ocr_png_bytes", lambda _: "OCR receipt text")
+
+    result = pdf_utils.to_html(pdf_res["base64_pdf"])
+    assert "base64_html" in result
+
+    decoded_html = base64.b64decode(result["base64_html"]).decode()
+    assert "OCR receipt text" in decoded_html
+    assert "Extracted text" in decoded_html
+
+
+def test_to_png_success() -> None:
+    pdf_res = pdf_utils.from_png(_make_base64_png())
+    assert "base64_pdf" in pdf_res
+
+    result = pdf_utils.to_png(pdf_res["base64_pdf"])
+    assert "base64_png" in result
+
+    with Image.open(BytesIO(base64.b64decode(result["base64_png"]))) as image:
+        assert image.format == "PNG"
+        assert image.size[0] > 0
+        assert image.size[1] > 0
+
+
+def test_to_png_invalid_base64() -> None:
+    result = pdf_utils.to_png("not-base64")
+    assert "error" in result
+
+
+def test_to_png_invalid_page_number() -> None:
+    pdf_res = pdf_utils.from_png(_make_base64_png())
+    assert "base64_pdf" in pdf_res
+
+    result = pdf_utils.to_png(pdf_res["base64_pdf"], page_number=0)
+    assert result == {"error": "Page number must be greater than 0"}
 
 
 def test_pdf_roundtrip() -> None:
@@ -59,6 +156,24 @@ def test_from_html_special_chars() -> None:
 
     html_back_res = pdf_utils.to_html(pdf_res["base64_pdf"])
     assert "base64_html" in html_back_res
+
+
+def test_png_pdf_roundtrip() -> None:
+    pdf_res = pdf_utils.from_png(_make_base64_png())
+    assert "base64_pdf" in pdf_res
+
+    png_res = pdf_utils.to_png(pdf_res["base64_pdf"])
+    assert "base64_png" in png_res
+
+    with Image.open(BytesIO(base64.b64decode(png_res["base64_png"]))) as image:
+        rgb_image = image.convert("RGB")
+        pixel = rgb_image.getpixel((rgb_image.size[0] // 2, rgb_image.size[1] // 2))
+        assert isinstance(pixel, tuple)
+        red = pixel[0]
+        green = pixel[1]
+        blue = pixel[2]
+        assert red > green
+        assert red > blue
 
 
 def test_strip_js_from_html() -> None:
