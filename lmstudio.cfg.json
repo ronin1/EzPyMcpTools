@@ -8,7 +8,7 @@
         "-i",
         "-v",
         "$PWD/user.data.json:/app/user.data.json:ro",
-        "ezpy-tools:alpine"
+        "ezpy-tools"
       ]
     }
   }

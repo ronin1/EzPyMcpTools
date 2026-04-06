@@ -3,6 +3,7 @@ unexport VIRTUAL_ENV
 # OLLAMA_MODEL ?= mistral-small3.2:latest
 OLLAMA_MODEL ?= qwen3-vl:8b
 #OLLAMA_MODEL ?= llama4:16x17b
+DOCKER_IMAGE ?= ezpy-tools
 
 .PHONY: setup py_req user_info run test test_user_info mcp_config config inspector lint build docker-build docker-test weasyprint_deps
 
@@ -61,7 +62,7 @@ mcp_config:
 	@echo '        "-i",'
 	@echo '        "-v",'
 	@echo '        "$(CURDIR)/user.data.json:/app/user.data.json:ro",'
-	@echo '        "ezpy-tools:alpine"'
+	@echo '        "$(DOCKER_IMAGE)"'
 	@echo '      ]'
 	@echo '    }'
 	@echo '  }'
@@ -82,9 +83,9 @@ inspector:
 	@npx @modelcontextprotocol/inspector
 
 docker-build: user_info
-	@docker build -t ezpy-tools .
+	@docker build -t ezpy-tools -t $(DOCKER_IMAGE) .
 
 build: docker-build
 
 docker-test: docker-build
-	@python3 scripts/run_tests.py --mode docker
+	@EZPY_TOOLS_IMAGE=$(DOCKER_IMAGE) python3 scripts/run_tests.py --mode docker
