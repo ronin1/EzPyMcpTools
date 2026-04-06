@@ -59,9 +59,56 @@ def test_to_html_success() -> None:
     assert "Hello World" in decoded_html
 
 
+def test_to_html_returns_embedded_source_html() -> None:
+    html = (
+        "<html><head><style>body { background: #123456; color: white; }</style></head>"
+        '<body><h1 onclick="evil()">Styled Receipt</h1>'
+        "<script>console.log('nope')</script></body></html>"
+    )
+    base64_html = base64.b64encode(html.encode()).decode()
+    pdf_res = pdf_utils.from_html(base64_html)
+    assert "base64_pdf" in pdf_res
+
+    result = pdf_utils.to_html(pdf_res["base64_pdf"])
+    assert "base64_html" in result
+
+    decoded_html = base64.b64decode(result["base64_html"]).decode()
+    assert "background: #123456" in decoded_html
+    assert "Styled Receipt" in decoded_html
+    assert "<script" not in decoded_html
+    assert "onclick" not in decoded_html
+
+
 def test_to_html_invalid_base64() -> None:
     result = pdf_utils.to_html("not-base64")
     assert "error" in result
+
+
+def test_to_html_renders_pages_for_pdf_without_embedded_html() -> None:
+    pdf_res = pdf_utils.from_png(_make_base64_png())
+    assert "base64_pdf" in pdf_res
+
+    result = pdf_utils.to_html(pdf_res["base64_pdf"])
+    assert "base64_html" in result
+
+    decoded_html = base64.b64decode(result["base64_html"]).decode()
+    assert 'data-render-mode="rendered-pages"' in decoded_html
+    assert "data:image/png;base64," in decoded_html
+
+
+def test_to_html_uses_ocr_when_text_extraction_is_missing(monkeypatch) -> None:
+    pdf_res = pdf_utils.from_png(_make_base64_png())
+    assert "base64_pdf" in pdf_res
+
+    monkeypatch.setattr(pdf_utils, "_extract_pdf_text", lambda _: None)
+    monkeypatch.setattr(pdf_utils, "_ocr_png_bytes", lambda _: "OCR receipt text")
+
+    result = pdf_utils.to_html(pdf_res["base64_pdf"])
+    assert "base64_html" in result
+
+    decoded_html = base64.b64decode(result["base64_html"]).decode()
+    assert "OCR receipt text" in decoded_html
+    assert "Extracted text" in decoded_html
 
 
 def test_to_png_success() -> None:
