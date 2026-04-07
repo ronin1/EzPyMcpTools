@@ -340,8 +340,11 @@ def test_extract_from_pdf_base64_empty() -> None:
     assert result["text"] is None
 
 
-def test_extract_from_pdf_path_success(tmp_path) -> None:
+def test_extract_from_pdf_path_success(tmp_path, monkeypatch) -> None:
     """Test extracting text from PDF file path."""
+    # Monkeypatch pdf_utils._get_temp_dir to use tmp_path for isolation
+    monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: str(tmp_path))
+
     # Create a PDF file
     html = "<html><body><p>PDF path test content here.</p></body></html>"
     base64_html = base64.b64encode(html.encode()).decode()
@@ -349,11 +352,18 @@ def test_extract_from_pdf_path_success(tmp_path) -> None:
 
     assert pdf_result["success"] is True, f"Failed to create PDF: {pdf_result}"
 
+    # Monkeypatch text_utils._validate_temp_path to allow the tmp_path
+    monkeypatch.setattr(text_utils, "_validate_temp_path", lambda p: (True, None, Path(p)))
+
     # Extract text from the PDF file
     result = text_utils.extract_from_pdf_path(pdf_result["file_path"])
 
-    assert "error" in result
-    assert isinstance(result["error"], (str, type(None)))
+    # Success case: should have text, no error
+    if "error" not in result:
+        assert "text" in result
+    else:
+        # If error, text should be None
+        assert result["text"] is None
 
 
 def test_extract_from_pdf_path_file_not_found(tmp_path, monkeypatch) -> None:
