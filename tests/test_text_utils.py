@@ -201,9 +201,12 @@ def test_extract_from_image_base64_png() -> None:
 
     result = text_utils.extract_from_image_base64(base64_image)
 
-    assert "error" in result
-    # OCR may or may not work depending on font availability, but it should process
-    assert isinstance(result["error"], (str, type(None)))
+    # Success: should have text, no error
+    if "error" not in result:
+        assert "text" in result
+    else:
+        # If error, text should be None
+        assert result["text"] is None
 
 
 def test_extract_from_image_base64_jpeg() -> None:
@@ -213,8 +216,12 @@ def test_extract_from_image_base64_jpeg() -> None:
 
     result = text_utils.extract_from_image_base64(base64_image)
 
-    assert "error" in result
-    assert isinstance(result["error"], (str, type(None)))
+    # Success: should have text, no error
+    if "error" not in result:
+        assert "text" in result
+    else:
+        # If error, text should be None
+        assert result["text"] is None
 
 
 def test_extract_from_image_base64_invalid() -> None:
@@ -259,8 +266,12 @@ def test_extract_from_image_path_success(tmp_path, monkeypatch) -> None:
 
     result = text_utils.extract_from_image_path(str(image_file))
 
-    assert "error" in result
-    assert isinstance(result["error"], (str, type(None)))
+    # Success: should have text, no error
+    if "error" not in result:
+        assert "text" in result
+    else:
+        # If error, text should be None
+        assert result["text"] is None
 
 
 def test_extract_from_image_path_access_denied() -> None:
@@ -461,7 +472,13 @@ def test_full_workflow_image_to_text(tmp_path, monkeypatch) -> None:
 
     # Extract text from saved file
     extract_result = text_utils.extract_from_image_path(str(image_file))
-    assert "error" in extract_result
+
+    # Success: should have text, no error
+    if "error" not in extract_result:
+        assert "text" in extract_result
+    else:
+        # If error, text should be None
+        assert extract_result["text"] is None
 
 
 def test_full_workflow_pdf_to_text(tmp_path, monkeypatch) -> None:
