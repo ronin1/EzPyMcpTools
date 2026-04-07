@@ -1,7 +1,19 @@
 """Accurate tool for text analysis and manipulation utilities."""
 
+from __future__ import annotations
+
 import base64
+import shutil
+from io import BytesIO
+from pathlib import Path
 from typing import Any
+
+import pypdfium2 as pdfium
+import pytesseract
+from PIL import Image
+from pypdf import PdfReader
+
+OCR_TEXT_MIN_LENGTH = 32
 
 
 def words_count(text: str) -> dict[str, Any]:
@@ -85,3 +97,292 @@ def from_base64(base64_str: str) -> dict[str, Any]:
         return {"text": decoded}
     except Exception:
         return {"error": "Invalid base64 string"}
+
+
+# PDF and Image Text Extraction Functions
+
+
+def _normalize_extracted_text(text: str) -> str:
+    """Normalize extracted text while keeping line boundaries useful."""
+    normalized_lines = []
+    for line in text.splitlines():
+        normalized_line = " ".join(line.split())
+        if normalized_line:
+            normalized_lines.append(normalized_line)
+    return "\n".join(normalized_lines)
+
+
+def _extract_pdf_text_with_fallback(pdf_bytes: bytes) -> str | None:
+    """Extract text from PDF bytes, using OCR if embedded text is insufficient.
+
+    First attempts to extract embedded text from PDF. If insufficient,
+    renders pages to images and uses OCR.
+
+    Args:
+        pdf_bytes: PDF file bytes.
+
+    Returns:
+        Extracted text or None if extraction fails.
+    """
+    # Try embedded text extraction first
+    try:
+        reader = PdfReader(BytesIO(pdf_bytes))
+        text_parts = []
+        for page in reader.pages:
+            text = page.extract_text()
+            if text:
+                normalized = _normalize_extracted_text(text)
+                if normalized:
+                    text_parts.append(normalized)
+        extracted_text = "\n\n".join(text_parts)
+        if extracted_text and len(extracted_text) >= OCR_TEXT_MIN_LENGTH:
+            return extracted_text
+    except Exception:
+        pass
+
+    # Fall back to OCR if embedded text is insufficient
+    if shutil.which("tesseract") is None:
+        return None
+
+    pdf_document = None
+    ocr_parts: list[str] = []
+
+    try:
+        pdf_document = pdfium.PdfDocument(pdf_bytes)
+        for page_index in range(len(pdf_document)):
+            page = None
+            bitmap = None
+            image = None
+            try:
+                page = pdf_document[page_index]
+                bitmap = page.render(scale=2)
+                image = bitmap.to_pil()
+                ocr_text = pytesseract.image_to_string(image)
+                normalized = _normalize_extracted_text(ocr_text)
+                if normalized:
+                    ocr_parts.append(normalized)
+            finally:
+                if image is not None:
+                    image.close()
+                if bitmap is not None:
+                    bitmap.close()
+                if page is not None:
+                    page.close()
+
+        ocr_result = "\n\n".join(ocr_parts)
+        return ocr_result if ocr_result else None
+    except Exception:
+        return None
+    finally:
+        if pdf_document is not None:
+            pdf_document.close()
+
+
+def _extract_image_text(image_bytes: bytes) -> str | None:
+    """Extract text from image bytes using OCR.
+
+    Supports all image formats supported by Pillow (PNG, JPEG, GIF, BMP,
+    TIFF, WebP, ICO, PPM, PGM, PBM, etc.).
+
+    Args:
+        image_bytes: Image file bytes.
+
+    Returns:
+        Extracted text or None if OCR fails.
+    """
+    if shutil.which("tesseract") is None:
+        return None
+
+    try:
+        with Image.open(BytesIO(image_bytes)) as image:
+            # Convert to RGB if necessary (for formats with transparency or palette)
+            if image.mode in ("RGBA", "P", "LA", "L", "1"):
+                rgb_image = image.convert("RGB")
+                ocr_text = pytesseract.image_to_string(rgb_image)
+                rgb_image.close()
+            else:
+                ocr_text = pytesseract.image_to_string(image)
+        normalized = _normalize_extracted_text(ocr_text)
+        return normalized if normalized else None
+    except Exception:
+        return None
+
+
+def extract_from_pdf_base64(base64_pdf: str) -> dict[str, Any]:
+    """Extract text from a base64 encoded PDF.
+
+    Attempts embedded text extraction first, falls back to OCR if needed.
+
+    Args:
+        base64_pdf: Base64 encoded PDF content.
+
+    Returns:
+        Dict with extracted `text` or `error` message.
+    """
+    if not isinstance(base64_pdf, str):
+        return {"error": "Input must be a base64 encoded string", "text": None}
+    if not base64_pdf:
+        return {"error": "Input cannot be empty", "text": None}
+
+    try:
+        pdf_bytes = base64.b64decode(base64_pdf, validate=True)
+        text = _extract_pdf_text_with_fallback(pdf_bytes)
+        if text is None:
+            return {"error": "Failed to extract text from PDF", "text": None}
+        return {"text": text}
+    except Exception as exc:
+        return {"error": f"An error occurred during extraction: {exc!s}", "text": None}
+
+
+def extract_from_pdf_path(file_path: str) -> dict[str, Any]:
+    """Extract text from a PDF file at the given path.
+
+    Designed for use with mounted volumes at /tmp/ezpy_tools/pdf/.
+    Path is validated to ensure it's within permitted directories.
+
+    Args:
+        file_path: Absolute path to the PDF file.
+
+    Returns:
+        Dict with extracted `text` or `error` message.
+    """
+    # Validate path is within permitted directories
+    is_valid, error_msg, resolved_path = _validate_temp_path(file_path)
+    if not is_valid:
+        return {"error": error_msg, "text": None}
+
+    if resolved_path is None:
+        return {"error": "Internal validation error", "text": None}
+    if not resolved_path.exists():
+        return {"error": f"File not found: {file_path}", "text": None}
+    if not resolved_path.is_file():
+        return {"error": f"Path is not a file: {file_path}", "text": None}
+
+    try:
+        with open(resolved_path, "rb") as f:
+            pdf_bytes = f.read()
+        text = _extract_pdf_text_with_fallback(pdf_bytes)
+        if text is None:
+            return {"error": "Failed to extract text from PDF", "text": None}
+        return {"text": text}
+    except Exception as exc:
+        return {"error": f"An error occurred during extraction: {exc!s}", "text": None}
+
+
+def extract_from_image_base64(base64_image: str) -> dict[str, Any]:
+    """Extract text from a base64 encoded image.
+
+    Uses OCR to extract text. Supports all image formats supported by
+    Pillow: PNG, JPEG, GIF, BMP, TIFF, WebP, ICO, PPM, PGM, PBM, etc.
+
+    Args:
+        base64_image: Base64 encoded image content.
+
+    Returns:
+        Dict with extracted `text` or `error` message.
+    """
+    if not isinstance(base64_image, str):
+        return {"error": "Input must be a base64 encoded string", "text": None}
+    if not base64_image:
+        return {"error": "Input cannot be empty", "text": None}
+
+    try:
+        image_bytes = base64.b64decode(base64_image, validate=True)
+        # Verify it's a valid image
+        with Image.open(BytesIO(image_bytes)) as img:
+            img.verify()
+
+        text = _extract_image_text(image_bytes)
+        if text is None:
+            return {"error": "Failed to extract text from image", "text": None}
+        return {"text": text}
+    except Exception as exc:
+        return {"error": f"An error occurred during extraction: {exc!s}", "text": None}
+
+
+def extract_from_image_path(file_path: str) -> dict[str, Any]:
+    """Extract text from an image file at the given path.
+
+    Uses OCR to extract text. Supports all image formats supported by
+    Pillow: PNG, JPEG, GIF, BMP, TIFF, WebP, ICO, PPM, PGM, PBM, etc.
+
+    Designed for use with mounted volumes at /tmp/ezpy_tools/png/ or /tmp/ezpy_tools/pdf/.
+    Path is validated to ensure it's within permitted directories.
+
+    Args:
+        file_path: Absolute path to the image file.
+
+    Returns:
+        Dict with extracted `text` or `error` message.
+    """
+    # Validate path is within permitted directories
+    is_valid, error_msg, resolved_path = _validate_temp_path(file_path)
+    if not is_valid:
+        return {"error": error_msg, "text": None}
+
+    if resolved_path is None:
+        return {"error": "Failed to resolve path", "text": None}
+    if not resolved_path.exists():
+        return {"error": f"File not found: {file_path}", "text": None}
+    if not resolved_path.is_file():
+        return {"error": f"Path is not a file: {file_path}", "text": None}
+
+    try:
+        with open(resolved_path, "rb") as f:
+            image_bytes = f.read()
+        text = _extract_image_text(image_bytes)
+        if text is None:
+            return {"error": "Failed to extract text from image", "text": None}
+        return {"text": text}
+    except Exception as exc:
+        return {"error": f"An error occurred during extraction: {exc!s}", "text": None}
+
+
+def _validate_temp_path(file_path: str) -> tuple[bool, str | None, Path | None]:
+    """Validate that a file path is within permitted /tmp/* directories.
+
+    This prevents directory traversal attacks by ensuring the resolved
+    path is within one of the allowed temporary directories.
+
+    Args:
+        file_path: The file path to validate.
+
+    Returns:
+        Tuple of (is_valid, error_message, resolved_path). is_valid is True if the path
+        is within permitted directories, False otherwise. resolved_path is the validated
+        Path object if valid, None otherwise.
+    """
+    if not isinstance(file_path, str):
+        return False, "Input must be a file path string", None
+    if not file_path:
+        return False, "File path cannot be empty", None
+
+    try:
+        # Resolve the path to handle symlinks, .., ., etc.
+        path = Path(file_path).resolve()
+
+        # Define permitted directories (must be absolute paths)
+        permitted_prefixes = (
+            Path("/tmp/ezpy_tools/pdf").resolve(),
+            Path("/tmp/ezpy_tools/png").resolve(),
+            Path("/tmp/ezpy_tools/text").resolve(),
+        )
+
+        # Check if the resolved path is within any permitted directory
+        for prefix in permitted_prefixes:
+            try:
+                # Check if path is the prefix itself or within it
+                path.relative_to(prefix)
+                return True, None, path
+            except ValueError:
+                # path is not relative to this prefix, try next
+                continue
+
+        # Path is not within any permitted directory
+        return (
+            False,
+            f"Access denied: Path '{file_path}' is not within permitted /tmp/* directories",
+            None,
+        )
+    except Exception as exc:
+        return False, f"Invalid file path: {exc!s}", None
