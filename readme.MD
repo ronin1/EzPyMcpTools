@@ -147,6 +147,36 @@ docker run --rm -i \
 }
 ```
 
+## Text Extraction Tools
+
+The text utilities now include powerful text extraction capabilities from PDFs and images using OCR:
+
+### PDF Text Extraction
+- `extract_from_pdf_base64(base64_pdf)` - Extract text from base64-encoded PDF (uses embedded text first, falls back to OCR)
+- `extract_from_pdf_path(file_path)` - Extract text from PDF file at given path (e.g., `/tmp/utils_pdf/document.pdf`)
+
+### Image Text Extraction (OCR)
+- `extract_from_image_base64(base64_image)` - Extract text from base64-encoded image using OCR
+- `extract_from_image_path(file_path)` - Extract text from image file at given path
+
+**Supported Image Formats:** PNG, JPEG, GIF, BMP, TIFF, WebP, ICO, PPM, PGM, PBM, and all formats supported by Pillow
+
+### File Saving Utility
+- `save_base64_to_tmp(base64_data, extension)` - Save any base64-encoded data to `/tmp/utils_text/{uuid}.{extension}` for shared access
+
+### Docker Configuration for Text Extraction
+
+When using text extraction with file paths, mount all temp directories:
+
+```bash
+docker run --rm -i \
+  -v "$PWD/user.data.json:/app/user.data.json:ro" \
+  -v "/tmp/utils_pdf:/tmp/utils_pdf" \
+  -v "/tmp/utils_png:/tmp/utils_png" \
+  -v "/tmp/utils_text:/tmp/utils_text" \
+  ezpy-tools
+```
+
 ## Install Instructions
 
 - If you are new to MCP Tooling or just starting AI work. I recommend LmStudio over Ollama as LmStudio is simpler & easier to get started with.

@@ -1,7 +1,21 @@
 """Accurate tool for text analysis and manipulation utilities."""
 
+from __future__ import annotations
+
 import base64
+import os
+import shutil
+import uuid
+from io import BytesIO
+from pathlib import Path
 from typing import Any
+
+import pypdfium2 as pdfium
+import pytesseract
+from PIL import Image
+from pypdf import PdfReader
+
+OCR_TEXT_MIN_LENGTH = 32
 
 
 def words_count(text: str) -> dict[str, Any]:
@@ -85,3 +99,276 @@ def from_base64(base64_str: str) -> dict[str, Any]:
         return {"text": decoded}
     except Exception:
         return {"error": "Invalid base64 string"}
+
+
+# PDF and Image Text Extraction Functions
+
+
+def _normalize_extracted_text(text: str) -> str:
+    """Normalize extracted text while keeping line boundaries useful."""
+    normalized_lines = []
+    for line in text.splitlines():
+        normalized_line = " ".join(line.split())
+        if normalized_line:
+            normalized_lines.append(normalized_line)
+    return "\n".join(normalized_lines)
+
+
+def _extract_pdf_text_with_fallback(pdf_bytes: bytes) -> str | None:
+    """Extract text from PDF bytes, using OCR if embedded text is insufficient.
+
+    First attempts to extract embedded text from PDF. If insufficient,
+    renders pages to images and uses OCR.
+
+    Args:
+        pdf_bytes: PDF file bytes.
+
+    Returns:
+        Extracted text or None if extraction fails.
+    """
+    # Try embedded text extraction first
+    try:
+        reader = PdfReader(BytesIO(pdf_bytes))
+        text_parts = []
+        for page in reader.pages:
+            text = page.extract_text()
+            if text:
+                normalized = _normalize_extracted_text(text)
+                if normalized:
+                    text_parts.append(normalized)
+        extracted_text = "\n\n".join(text_parts)
+        if extracted_text and len(extracted_text) >= OCR_TEXT_MIN_LENGTH:
+            return extracted_text
+    except Exception:
+        pass
+
+    # Fall back to OCR if embedded text is insufficient
+    if shutil.which("tesseract") is None:
+        return None
+
+    pdf_document = None
+    ocr_parts: list[str] = []
+
+    try:
+        pdf_document = pdfium.PdfDocument(pdf_bytes)
+        for page_index in range(len(pdf_document)):
+            page = None
+            bitmap = None
+            image = None
+            try:
+                page = pdf_document[page_index]
+                bitmap = page.render(scale=2)
+                image = bitmap.to_pil()
+                ocr_text = pytesseract.image_to_string(image)
+                normalized = _normalize_extracted_text(ocr_text)
+                if normalized:
+                    ocr_parts.append(normalized)
+            finally:
+                if image is not None:
+                    image.close()
+                if bitmap is not None:
+                    bitmap.close()
+                if page is not None:
+                    page.close()
+
+        ocr_result = "\n\n".join(ocr_parts)
+        return ocr_result if ocr_result else None
+    except Exception:
+        return None
+    finally:
+        if pdf_document is not None:
+            pdf_document.close()
+
+
+def _extract_image_text(image_bytes: bytes) -> str | None:
+    """Extract text from image bytes using OCR.
+
+    Supports all image formats supported by Pillow (PNG, JPEG, GIF, BMP,
+    TIFF, WebP, ICO, PPM, PGM, PBM, etc.).
+
+    Args:
+        image_bytes: Image file bytes.
+
+    Returns:
+        Extracted text or None if OCR fails.
+    """
+    if shutil.which("tesseract") is None:
+        return None
+
+    try:
+        with Image.open(BytesIO(image_bytes)) as image:
+            # Convert to RGB if necessary (for formats with transparency or palette)
+            if image.mode in ("RGBA", "P", "LA", "L", "1"):
+                rgb_image = image.convert("RGB")
+                ocr_text = pytesseract.image_to_string(rgb_image)
+                rgb_image.close()
+            else:
+                ocr_text = pytesseract.image_to_string(image)
+        normalized = _normalize_extracted_text(ocr_text)
+        return normalized if normalized else None
+    except Exception:
+        return None
+
+
+def extract_from_pdf_base64(base64_pdf: str) -> dict[str, Any]:
+    """Extract text from a base64 encoded PDF.
+
+    Attempts embedded text extraction first, falls back to OCR if needed.
+
+    Args:
+        base64_pdf: Base64 encoded PDF content.
+
+    Returns:
+        Dict with extracted `text` or `error` message.
+    """
+    if not isinstance(base64_pdf, str):
+        return {"error": "Input must be a base64 encoded string", "text": None}
+    if not base64_pdf:
+        return {"error": "Input cannot be empty", "text": None}
+
+    try:
+        pdf_bytes = base64.b64decode(base64_pdf, validate=True)
+        text = _extract_pdf_text_with_fallback(pdf_bytes)
+        if text is None:
+            return {"error": "Failed to extract text from PDF", "text": None}
+        return {"text": text, "error": None}
+    except Exception as exc:
+        return {"error": f"An error occurred during extraction: {exc!s}", "text": None}
+
+
+def extract_from_pdf_path(file_path: str) -> dict[str, Any]:
+    """Extract text from a PDF file at the given path.
+
+    Designed for use with mounted volumes at /tmp/utils_pdf/.
+
+    Args:
+        file_path: Absolute path to the PDF file.
+
+    Returns:
+        Dict with extracted `text` or `error` message.
+    """
+    if not isinstance(file_path, str):
+        return {"error": "Input must be a file path string", "text": None}
+    if not file_path:
+        return {"error": "File path cannot be empty", "text": None}
+
+    path = Path(file_path)
+    if not path.exists():
+        return {"error": f"File not found: {file_path}", "text": None}
+    if not path.is_file():
+        return {"error": f"Path is not a file: {file_path}", "text": None}
+
+    try:
+        with open(path, "rb") as f:
+            pdf_bytes = f.read()
+        text = _extract_pdf_text_with_fallback(pdf_bytes)
+        if text is None:
+            return {"error": "Failed to extract text from PDF", "text": None}
+        return {"text": text, "error": None}
+    except Exception as exc:
+        return {"error": f"An error occurred during extraction: {exc!s}", "text": None}
+
+
+def extract_from_image_base64(base64_image: str) -> dict[str, Any]:
+    """Extract text from a base64 encoded image.
+
+    Uses OCR to extract text. Supports all image formats supported by
+    Pillow: PNG, JPEG, GIF, BMP, TIFF, WebP, ICO, PPM, PGM, PBM, etc.
+
+    Args:
+        base64_image: Base64 encoded image content.
+
+    Returns:
+        Dict with extracted `text` or `error` message.
+    """
+    if not isinstance(base64_image, str):
+        return {"error": "Input must be a base64 encoded string", "text": None}
+    if not base64_image:
+        return {"error": "Input cannot be empty", "text": None}
+
+    try:
+        image_bytes = base64.b64decode(base64_image, validate=True)
+        # Verify it's a valid image
+        with Image.open(BytesIO(image_bytes)) as img:
+            img.verify()
+
+        text = _extract_image_text(image_bytes)
+        if text is None:
+            return {"error": "Failed to extract text from image", "text": None}
+        return {"text": text, "error": None}
+    except Exception as exc:
+        return {"error": f"An error occurred during extraction: {exc!s}", "text": None}
+
+
+def extract_from_image_path(file_path: str) -> dict[str, Any]:
+    """Extract text from an image file at the given path.
+
+    Uses OCR to extract text. Supports all image formats supported by
+    Pillow: PNG, JPEG, GIF, BMP, TIFF, WebP, ICO, PPM, PGM, PBM, etc.
+
+    Designed for use with mounted volumes at /tmp/utils_png/ or /tmp/utils_pdf/.
+
+    Args:
+        file_path: Absolute path to the image file.
+
+    Returns:
+        Dict with extracted `text` or `error` message.
+    """
+    if not isinstance(file_path, str):
+        return {"error": "Input must be a file path string", "text": None}
+    if not file_path:
+        return {"error": "File path cannot be empty", "text": None}
+
+    path = Path(file_path)
+    if not path.exists():
+        return {"error": f"File not found: {file_path}", "text": None}
+    if not path.is_file():
+        return {"error": f"Path is not a file: {file_path}", "text": None}
+
+    try:
+        with open(path, "rb") as f:
+            image_bytes = f.read()
+        text = _extract_image_text(image_bytes)
+        if text is None:
+            return {"error": "Failed to extract text from image", "text": None}
+        return {"text": text, "error": None}
+    except Exception as exc:
+        return {"error": f"An error occurred during extraction: {exc!s}", "text": None}
+
+
+def _get_temp_dir() -> str:
+    """Get or create the temporary directory for files."""
+    temp_dir = "/tmp/utils_text"
+    os.makedirs(temp_dir, exist_ok=True)
+    return temp_dir
+
+
+def save_base64_to_tmp(base64_data: str, extension: str) -> dict[str, Any]:
+    """Save base64 encoded data to /tmp/utils_text/ for shared access.
+
+    Args:
+        base64_data: Base64 encoded file content.
+        extension: File extension (e.g., 'pdf', 'png', 'jpg').
+
+    Returns:
+        Dict with the absolute file path and processing status.
+    """
+    if not isinstance(base64_data, str):
+        return {"error": "Input must be a base64 encoded string", "file_path": None}
+    if not base64_data:
+        return {"error": "Input cannot be empty", "file_path": None}
+    if not isinstance(extension, str) or not extension:
+        return {"error": "Extension must be a non-empty string", "file_path": None}
+
+    try:
+        file_bytes = base64.b64decode(base64_data, validate=True)
+        temp_dir = _get_temp_dir()
+        file_name = f"{uuid.uuid4()}.{extension.lstrip('.')}"
+        file_path = os.path.join(temp_dir, file_name)
+
+        with open(file_path, "wb") as f:
+            f.write(file_bytes)
+
+        return {"file_path": file_path, "error": None}
+    except Exception as exc:
+        return {"error": f"Failed to save file: {exc!s}", "file_path": None}
