@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import base64
-import pathlib
 from io import BytesIO
 
 from PIL import Image, ImageDraw, ImageFont
@@ -273,7 +272,7 @@ def test_extract_from_image_path_file_not_found(tmp_path, monkeypatch) -> None:
     # Mock _validate_temp_path to allow the path
     monkeypatch.setattr(text_utils, "_validate_temp_path", lambda _: (True, None))
 
-    result = text_utils.extract_from_image_path("/tmp/utils_png/nonexistent.png")
+    result = text_utils.extract_from_image_path("/tmp/ezpy_tools/png/nonexistent.png")
     assert result["error"] is not None
     assert "not found" in result["error"].lower()
     assert result["text"] is None
@@ -351,7 +350,7 @@ def test_extract_from_pdf_path_file_not_found(tmp_path, monkeypatch) -> None:
     # Mock _validate_temp_path to allow the path
     monkeypatch.setattr(text_utils, "_validate_temp_path", lambda _: (True, None))
 
-    result = text_utils.extract_from_pdf_path("/tmp/utils_pdf/nonexistent.pdf")
+    result = text_utils.extract_from_pdf_path("/tmp/ezpy_tools/pdf/nonexistent.pdf")
     assert result["error"] is not None
     assert "not found" in result["error"].lower()
     assert result["text"] is None
@@ -370,68 +369,6 @@ def test_extract_from_pdf_path_empty() -> None:
     result = text_utils.extract_from_pdf_path("")
     assert result["error"] is not None
     assert result["text"] is None
-
-
-def test_save_base64_to_tmp_success(tmp_path, monkeypatch) -> None:
-    """Test saving base64 data to temp directory."""
-    monkeypatch.setattr(text_utils, "_get_temp_dir", lambda: str(tmp_path))
-
-    # Create some test data
-    test_data = b"Test data content"
-    base64_data = base64.b64encode(test_data).decode()
-
-    result = text_utils._save_base64_to_tmp(base64_data, "txt")
-
-    assert result["error"] is None
-    assert result["file_path"] is not None
-    assert result["file_path"].startswith(str(tmp_path))
-    assert result["file_path"].endswith(".txt")
-    # Verify file exists and has correct content
-    assert pathlib.Path(result["file_path"]).exists()
-    with open(result["file_path"], "rb") as f:
-        assert f.read() == test_data
-
-
-def test_save_base64_to_tmp_pdf(tmp_path, monkeypatch) -> None:
-    """Test saving base64 PDF to temp directory."""
-    monkeypatch.setattr(text_utils, "_get_temp_dir", lambda: str(tmp_path))
-
-    # Create a PDF
-    html = "<html><body><p>Test PDF</p></body></html>"
-    base64_html = base64.b64encode(html.encode()).decode()
-    pdf_result = pdf_utils.from_html(base64_html)
-    assert "base64_pdf" in pdf_result
-
-    # Save the PDF
-    result = text_utils._save_base64_to_tmp(pdf_result["base64_pdf"], "pdf")
-
-    assert result["error"] is None
-    assert result["file_path"] is not None
-    assert result["file_path"].endswith(".pdf")
-    # Verify it's a valid PDF
-    with open(result["file_path"], "rb") as f:
-        assert f.read().startswith(b"%PDF")
-
-
-def test_save_base64_to_tmp_invalid_base64() -> None:
-    """Test error handling for invalid base64."""
-    result = text_utils._save_base64_to_tmp("not-valid-base64!!!", "txt")
-    assert result["error"] is not None
-    assert result["file_path"] is None
-
-
-def test_save_base64_to_tmp_empty_extension() -> None:
-    """Test error handling for empty extension."""
-    result = text_utils._save_base64_to_tmp("dGVzdA==", "")
-    assert result["error"] is not None
-    assert result["file_path"] is None
-
-
-def test_save_base64_to_tmp_non_string_extension() -> None:
-    """Test error handling for non-string extension."""
-    result = text_utils._save_base64_to_tmp("dGVzdA==", 123)  # type: ignore
-    assert result["error"] is not None
-    assert result["file_path"] is None
 
 
 # Test various image formats
@@ -490,41 +427,30 @@ def test_extract_from_pdf_path_non_pdf_file(tmp_path, monkeypatch) -> None:
 
 def test_full_workflow_image_to_text(tmp_path, monkeypatch) -> None:
     """Test full workflow: create image, save to tmp, extract text."""
-    monkeypatch.setattr(text_utils, "_get_temp_dir", lambda: str(tmp_path))
     monkeypatch.setattr(text_utils, "_validate_temp_path", lambda _: (True, None))
 
-    # Create an image with text
+    # Create an image with text and save directly
     image_bytes, _ = _create_image_with_text("INTEGRATION TEST")
-    base64_image = base64.b64encode(image_bytes).decode()
-
-    # Save to temp
-    save_result = text_utils._save_base64_to_tmp(base64_image, "png")
-    assert save_result["error"] is None
-    assert save_result["file_path"] is not None
+    image_file = tmp_path / "test.png"
+    image_file.write_bytes(image_bytes)
 
     # Extract text from saved file
-    extract_result = text_utils.extract_from_image_path(save_result["file_path"])
+    extract_result = text_utils.extract_from_image_path(str(image_file))
     assert "error" in extract_result
 
 
 def test_full_workflow_pdf_to_text(tmp_path, monkeypatch) -> None:
     """Test full workflow: create PDF, save to tmp, extract text."""
-    monkeypatch.setattr(text_utils, "_get_temp_dir", lambda: str(tmp_path))
     monkeypatch.setattr(text_utils, "_validate_temp_path", lambda _: (True, None))
 
-    # Create a PDF with text
+    # Create a PDF with text and save directly
     html = "<html><body><p>PDF integration test content.</p></body></html>"
     base64_html = base64.b64encode(html.encode()).decode()
-    pdf_result = pdf_utils.from_html(base64_html)
-    assert "base64_pdf" in pdf_result
-
-    # Save to temp
-    save_result = text_utils._save_base64_to_tmp(pdf_result["base64_pdf"], "pdf")
-    assert save_result["error"] is None
-    assert save_result["file_path"] is not None
+    pdf_result = pdf_utils.from_html_save_to_file(base64_html)
+    assert pdf_result["success"] is True
 
     # Extract text from saved file
-    extract_result = text_utils.extract_from_pdf_path(save_result["file_path"])
+    extract_result = text_utils.extract_from_pdf_path(pdf_result["file_path"])
     assert "error" in extract_result
 
 
@@ -535,9 +461,9 @@ def test_validate_temp_path_permitted_directories() -> None:
     """Test that permitted directories are accepted."""
     # These should all be valid
     permitted_paths = [
-        "/tmp/utils_pdf/document.pdf",
-        "/tmp/utils_png/image.png",
-        "/tmp/utils_text/file.txt",
+        "/tmp/ezpy_tools/pdf/document.pdf",
+        "/tmp/ezpy_tools/png/image.png",
+        "/tmp/ezpy_tools/text/file.txt",
     ]
     for path in permitted_paths:
         is_valid, _error = text_utils._validate_temp_path(path)
@@ -565,8 +491,8 @@ def test_validate_temp_path_traversal_attack() -> None:
     """Test that path traversal attacks are blocked."""
     # Path traversal attempts
     traversal_paths = [
-        "/tmp/utils_pdf/../../../etc/passwd",
-        "/tmp/utils_png/../utils_pdf/../../../etc/shadow",
+        "/tmp/ezpy_tools/pdf/../../../etc/passwd",
+        "/tmp/ezpy_tools/png/../utils_pdf/../../../etc/shadow",
     ]
     for path in traversal_paths:
         is_valid, _error = text_utils._validate_temp_path(path)

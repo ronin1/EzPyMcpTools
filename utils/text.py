@@ -5,7 +5,6 @@ from __future__ import annotations
 import base64
 import os
 import shutil
-import uuid
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -239,7 +238,7 @@ def extract_from_pdf_base64(base64_pdf: str) -> dict[str, Any]:
 def extract_from_pdf_path(file_path: str) -> dict[str, Any]:
     """Extract text from a PDF file at the given path.
 
-    Designed for use with mounted volumes at /tmp/utils_pdf/.
+    Designed for use with mounted volumes at /tmp/ezpy_tools/pdf/.
     Path is validated to ensure it's within permitted directories.
 
     Args:
@@ -307,7 +306,7 @@ def extract_from_image_path(file_path: str) -> dict[str, Any]:
     Uses OCR to extract text. Supports all image formats supported by
     Pillow: PNG, JPEG, GIF, BMP, TIFF, WebP, ICO, PPM, PGM, PBM, etc.
 
-    Designed for use with mounted volumes at /tmp/utils_png/ or /tmp/utils_pdf/.
+    Designed for use with mounted volumes at /tmp/ezpy_tools/png/ or /tmp/ezpy_tools/pdf/.
     Path is validated to ensure it's within permitted directories.
 
     Args:
@@ -340,7 +339,7 @@ def extract_from_image_path(file_path: str) -> dict[str, Any]:
 
 def _get_temp_dir() -> str:
     """Get or create the temporary directory for files."""
-    temp_dir = "/tmp/utils_text"
+    temp_dir = "/tmp/ezpy_tools/text"
     os.makedirs(temp_dir, exist_ok=True)
     return temp_dir
 
@@ -369,9 +368,9 @@ def _validate_temp_path(file_path: str) -> tuple[bool, str | None]:
 
         # Define permitted directories (must be absolute paths)
         permitted_prefixes = (
-            Path("/tmp/utils_pdf").resolve(),
-            Path("/tmp/utils_png").resolve(),
-            Path("/tmp/utils_text").resolve(),
+            Path("/tmp/ezpy_tools/pdf").resolve(),
+            Path("/tmp/ezpy_tools/png").resolve(),
+            Path("/tmp/ezpy_tools/text").resolve(),
         )
 
         # Check if the resolved path is within any permitted directory
@@ -391,34 +390,3 @@ def _validate_temp_path(file_path: str) -> tuple[bool, str | None]:
         )
     except Exception as exc:
         return False, f"Invalid file path: {exc!s}"
-
-
-def _save_base64_to_tmp(base64_data: str, extension: str) -> dict[str, Any]:
-    """Save base64 encoded data to /tmp/utils_text/ for shared access.
-
-    Args:
-        base64_data: Base64 encoded file content.
-        extension: File extension (e.g., 'pdf', 'png', 'jpg').
-
-    Returns:
-        Dict with the absolute file path and processing status.
-    """
-    if not isinstance(base64_data, str):
-        return {"error": "Input must be a base64 encoded string", "file_path": None}
-    if not base64_data:
-        return {"error": "Input cannot be empty", "file_path": None}
-    if not isinstance(extension, str) or not extension:
-        return {"error": "Extension must be a non-empty string", "file_path": None}
-
-    try:
-        file_bytes = base64.b64decode(base64_data, validate=True)
-        temp_dir = _get_temp_dir()
-        file_name = f"{uuid.uuid4()}.{extension.lstrip('.')}"
-        file_path = os.path.join(temp_dir, file_name)
-
-        with open(file_path, "wb") as f:
-            f.write(file_bytes)
-
-        return {"file_path": file_path, "error": None}
-    except Exception as exc:
-        return {"error": f"Failed to save file: {exc!s}", "file_path": None}

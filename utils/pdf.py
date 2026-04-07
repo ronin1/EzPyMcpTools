@@ -24,7 +24,7 @@ OCR_TEXT_MIN_LENGTH = 32
 
 def _get_temp_dir() -> str:
     """Get or create the temporary directory for PDF files."""
-    temp_dir = "/tmp/utils_pdf"
+    temp_dir = "/tmp/ezpy_tools/pdf"
     os.makedirs(temp_dir, exist_ok=True)
     return temp_dir
 
@@ -53,9 +53,9 @@ def _validate_temp_path(file_path: str) -> tuple[bool, str | None]:
 
         # Define permitted directories (must be absolute paths)
         permitted_prefixes = (
-            Path("/tmp/utils_pdf").resolve(),
-            Path("/tmp/utils_png").resolve(),
-            Path("/tmp/utils_text").resolve(),
+            Path("/tmp/ezpy_tools/pdf").resolve(),
+            Path("/tmp/ezpy_tools/png").resolve(),
+            Path("/tmp/ezpy_tools/text").resolve(),
         )
 
         # Check if the resolved path is within any permitted directory
@@ -484,7 +484,7 @@ def from_html_save_to_file(base64_html: str) -> dict[str, Any]:
     """Convert base64 encoded HTML content to a PDF file.
 
     Note: Uses WeasyPrint for proper HTML/CSS rendering. JavaScript is stripped.
-    Saves the PDF to /tmp/utils_pdf/{uuid}.pdf for shared access.
+    Saves the PDF to /tmp/ezpy_tools/pdf/{uuid}.pdf for shared access.
 
     Args:
         base64_html: Base64 encoded string of the HTML content.
@@ -514,7 +514,7 @@ def from_html_save_to_file(base64_html: str) -> dict[str, Any]:
 def from_png_save_to_file(base64_png: str) -> dict[str, Any]:
     """Convert base64 encoded PNG content to a PDF file.
 
-    Saves the PDF to /tmp/utils_pdf/{uuid}.pdf for shared access.
+    Saves the PDF to /tmp/ezpy_tools/pdf/{uuid}.pdf for shared access.
 
     Args:
         base64_png: Base64 encoded string of the PNG content.
@@ -544,7 +544,7 @@ def from_png_save_to_file(base64_png: str) -> dict[str, Any]:
 def to_html_save_to_file(base64_pdf: str) -> dict[str, Any]:
     """Convert base64 encoded PDF content to an HTML file.
 
-    Saves the HTML to /tmp/utils_pdf/{uuid}.html for shared access.
+    Saves the HTML to /tmp/ezpy_tools/pdf/{uuid}.html for shared access.
 
     Args:
         base64_pdf: Base64 encoded string of the PDF content.
@@ -574,7 +574,7 @@ def to_html_save_to_file(base64_pdf: str) -> dict[str, Any]:
 def to_png_save_to_file(base64_pdf: str, page_number: int = 1) -> dict[str, Any]:
     """Convert base64 encoded PDF content to a PNG file.
 
-    Saves the PNG to /tmp/utils_pdf/{uuid}.png for shared access.
+    Saves the PNG to /tmp/ezpy_tools/pdf/{uuid}.png for shared access.
 
     Args:
         base64_pdf: Base64 encoded string of the PDF content.
@@ -605,12 +605,12 @@ def to_png_save_to_file(base64_pdf: str, page_number: int = 1) -> dict[str, Any]
 def from_html_from_tmp_to_tmp_dir(file_path: str) -> dict[str, Any]:
     """Convert HTML file from tmp directory to a PDF file in tmp directory.
 
-    Reads HTML from /tmp/utils_pdf/{file}, converts to PDF using WeasyPrint,
-    and saves the result to /tmp/utils_pdf/{uuid}.pdf.
+    Reads HTML from /tmp/ezpy_tools/pdf/{file}, converts to PDF using WeasyPrint,
+    and saves the result to /tmp/ezpy_tools/pdf/{uuid}.pdf.
     Path is validated to ensure it's within permitted directories.
 
     Args:
-        file_path: Absolute path to the HTML file (typically in /tmp/utils_pdf/)."""
+        file_path: Absolute path to the HTML file (typically in /tmp/ezpy_tools/pdf/)."""
     # Validate path is within permitted directories
     is_valid, error_msg = _validate_temp_path(file_path)
     if not is_valid:
@@ -635,12 +635,12 @@ def from_html_from_tmp_to_tmp_dir(file_path: str) -> dict[str, Any]:
 def from_png_from_tmp_to_tmp_dir(file_path: str) -> dict[str, Any]:
     """Convert PNG file from tmp directory to a PDF file in tmp directory.
 
-    Reads PNG from /tmp/utils_pdf/{file}, converts to PDF, and saves the
-    result to /tmp/utils_pdf/{uuid}.pdf.
+    Reads PNG from /tmp/ezpy_tools/pdf/{file}, converts to PDF, and saves the
+    result to /tmp/ezpy_tools/pdf/{uuid}.pdf.
     Path is validated to ensure it's within permitted directories.
 
     Args:
-        file_path: Absolute path to the PNG file (typically in /tmp/utils_pdf/)."""
+        file_path: Absolute path to the PNG file (typically in /tmp/ezpy_tools/pdf/)."""
     # Validate path is within permitted directories
     is_valid, error_msg = _validate_temp_path(file_path)
     if not is_valid:
@@ -665,12 +665,12 @@ def from_png_from_tmp_to_tmp_dir(file_path: str) -> dict[str, Any]:
 def to_html_from_tmp_to_tmp_dir(file_path: str) -> dict[str, Any]:
     """Convert PDF file from tmp directory to an HTML file in tmp directory.
 
-    Reads PDF from /tmp/utils_pdf/{file}, converts to HTML, and saves the
-    result to /tmp/utils_pdf/{uuid}.html.
+    Reads PDF from /tmp/ezpy_tools/pdf/{file}, converts to HTML, and saves the
+    result to /tmp/ezpy_tools/pdf/{uuid}.html.
     Path is validated to ensure it's within permitted directories.
 
     Args:
-        file_path: Absolute path to the PDF file (typically in /tmp/utils_pdf/)."""
+        file_path: Absolute path to the PDF file (typically in /tmp/ezpy_tools/pdf/)."""
     # Validate path is within permitted directories
     is_valid, error_msg = _validate_temp_path(file_path)
     if not is_valid:
@@ -695,12 +695,12 @@ def to_html_from_tmp_to_tmp_dir(file_path: str) -> dict[str, Any]:
 def to_png_from_tmp_to_tmp_dir(file_path: str, page_number: int = 1) -> dict[str, Any]:
     """Convert PDF file from tmp directory to a PNG file in tmp directory.
 
-    Reads PDF from /tmp/utils_pdf/{file}, converts page to PNG, and saves the
-    result to /tmp/utils_pdf/{uuid}.png.
+    Reads PDF from /tmp/ezpy_tools/pdf/{file}, converts page to PNG, and saves the
+    result to /tmp/ezpy_tools/pdf/{uuid}.png.
     Path is validated to ensure it's within permitted directories.
 
     Args:
-        file_path: Absolute path to the PDF file (typically in /tmp/utils_pdf/).
+        file_path: Absolute path to the PDF file (typically in /tmp/ezpy_tools/pdf/).
         page_number: One-based PDF page number to render."""
     # Validate path is within permitted directories
     is_valid, error_msg = _validate_temp_path(file_path)

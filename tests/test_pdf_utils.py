@@ -428,7 +428,7 @@ def test_from_html_from_tmp_to_tmp_dir_file_not_found(tmp_path, monkeypatch) -> 
     """Test error handling for non-existent HTML file in permitted directory."""
     monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda _: (True, None))
 
-    result = pdf_utils.from_html_from_tmp_to_tmp_dir("/tmp/utils_pdf/nonexistent.html")
+    result = pdf_utils.from_html_from_tmp_to_tmp_dir("/tmp/ezpy_tools/pdf/nonexistent.html")
     assert result["success"] is False
     assert result["error"] is not None
     assert "not found" in result["error"].lower()
@@ -479,7 +479,7 @@ def test_from_png_from_tmp_to_tmp_dir_file_not_found(tmp_path, monkeypatch) -> N
     """Test error handling for non-existent PNG file in permitted directory."""
     monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda _: (True, None))
 
-    result = pdf_utils.from_png_from_tmp_to_tmp_dir("/tmp/utils_png/nonexistent.png")
+    result = pdf_utils.from_png_from_tmp_to_tmp_dir("/tmp/ezpy_tools/png/nonexistent.png")
     assert result["success"] is False
     assert result["error"] is not None
     assert "not found" in result["error"].lower()
@@ -522,7 +522,7 @@ def test_to_html_from_tmp_to_tmp_dir_file_not_found(tmp_path, monkeypatch) -> No
     """Test error handling for non-existent PDF file in permitted directory."""
     monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda _: (True, None))
 
-    result = pdf_utils.to_html_from_tmp_to_tmp_dir("/tmp/utils_pdf/nonexistent.pdf")
+    result = pdf_utils.to_html_from_tmp_to_tmp_dir("/tmp/ezpy_tools/pdf/nonexistent.pdf")
     assert result["success"] is False
     assert result["error"] is not None
     assert "not found" in result["error"].lower()
@@ -566,7 +566,7 @@ def test_to_png_from_tmp_to_tmp_dir_file_not_found(tmp_path, monkeypatch) -> Non
     """Test error handling for non-existent PDF file in permitted directory."""
     monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda _: (True, None))
 
-    result = pdf_utils.to_png_from_tmp_to_tmp_dir("/tmp/utils_pdf/nonexistent.pdf")
+    result = pdf_utils.to_png_from_tmp_to_tmp_dir("/tmp/ezpy_tools/pdf/nonexistent.pdf")
     assert result["success"] is False
     assert result["error"] is not None
     assert "not found" in result["error"].lower()
@@ -608,9 +608,9 @@ def test_validate_temp_path_permitted_directories() -> None:
     """Test that permitted directories are accepted."""
     # These should all be valid
     permitted_paths = [
-        "/tmp/utils_pdf/document.pdf",
-        "/tmp/utils_png/image.png",
-        "/tmp/utils_text/file.txt",
+        "/tmp/ezpy_tools/pdf/document.pdf",
+        "/tmp/ezpy_tools/png/image.png",
+        "/tmp/ezpy_tools/text/file.txt",
     ]
     for path in permitted_paths:
         is_valid, _error = pdf_utils._validate_temp_path(path)
@@ -638,8 +638,8 @@ def test_validate_temp_path_traversal_attack() -> None:
     """Test that path traversal attacks are blocked."""
     # Path traversal attempts
     traversal_paths = [
-        "/tmp/utils_pdf/../../../etc/passwd",
-        "/tmp/utils_png/../utils_pdf/../../../etc/shadow",
+        "/tmp/ezpy_tools/pdf/../../../etc/passwd",
+        "/tmp/ezpy_tools/png/../utils_pdf/../../../etc/shadow",
     ]
     for path in traversal_paths:
         is_valid, _error = pdf_utils._validate_temp_path(path)

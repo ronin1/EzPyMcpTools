@@ -46,17 +46,17 @@ After pulling this project from GitHub:
 
 ## PDF Tools & Temporary File Sharing
 
-The PDF utilities include two sets of methods for working with files in `/tmp/utils_pdf/`:
+The PDF utilities include two sets of methods for working with files in `/tmp/ezpy_tools/pdf/`:
 
 ### `*_save_to_file()` - Base64 Input to File
-These methods take base64-encoded input and save the result to `/tmp/utils_pdf/`:
-- `from_html_save_to_file(base64_html)` → saves to `/tmp/utils_pdf/{uuid}.pdf`
-- `from_png_save_to_file(base64_png)` → saves to `/tmp/utils_pdf/{uuid}.pdf`
-- `to_html_save_to_file(base64_pdf)` → saves to `/tmp/utils_pdf/{uuid}.html`
-- `to_png_save_to_file(base64_pdf, page_number=1)` → saves to `/tmp/utils_pdf/{uuid}.png`
+These methods take base64-encoded input and save the result to `/tmp/ezpy_tools/pdf/`:
+- `from_html_save_to_file(base64_html)` → saves to `/tmp/ezpy_tools/pdf/{uuid}.pdf`
+- `from_png_save_to_file(base64_png)` → saves to `/tmp/ezpy_tools/pdf/{uuid}.pdf`
+- `to_html_save_to_file(base64_pdf)` → saves to `/tmp/ezpy_tools/pdf/{uuid}.html`
+- `to_png_save_to_file(base64_pdf, page_number=1)` → saves to `/tmp/ezpy_tools/pdf/{uuid}.png`
 
 ### `*_from_tmp_to_tmp_dir()` - File Input to File  
-These methods read from files in `/tmp/utils_pdf/` and save the result back to `/tmp/utils_pdf/`:
+These methods read from files in `/tmp/ezpy_tools/pdf/` and save the result back to `/tmp/ezpy_tools/pdf/`:
 - `from_html_from_tmp_to_tmp_dir(file_path)` → reads HTML, saves PDF
 - `from_png_from_tmp_to_tmp_dir(file_path)` → reads PNG, saves PDF
 - `to_html_from_tmp_to_tmp_dir(file_path)` → reads PDF, saves HTML
@@ -70,7 +70,7 @@ When using the PDF methods in Docker, mount the temp directory as a shared volum
 # Run with tmp directory mounted for PDF file sharing
 docker run --rm -i \
   -v "$PWD/user.data.json:/app/user.data.json:ro" \
-  -v "/tmp/utils_pdf:/tmp/utils_pdf" \
+  -v "/tmp/ezpy_tools/pdf:/tmp/ezpy_tools/pdf" \
   ezpy-tools
 ```
 
@@ -88,7 +88,7 @@ docker run --rm -i \
         "-v",
         "/absolute/path/to/tools/user.data.json:/app/user.data.json:ro",
         "-v",
-        "/tmp/utils_pdf:/tmp/utils_pdf",
+        "/tmp/ezpy_tools/pdf:/tmp/ezpy_tools/pdf",
         "ezpy-tools"
       ]
     }
@@ -98,54 +98,9 @@ docker run --rm -i \
 
 ### Local Development
 
-For local Python development, the `/tmp/utils_pdf/` directory is created automatically. Files are saved with UUID-based filenames:
-- `*_save_to_file()` methods save to `/tmp/utils_pdf/{uuid}.{ext}`
-- `*_from_tmp_to_tmp_dir()` methods read from file path, save to `/tmp/utils_pdf/{uuid}.{ext}`
-
-## PNG Tools & OCR Text Extraction
-
-The PNG utilities provide OCR (Optical Character Recognition) capabilities to extract text from images:
-
-- `extract_text_from_base64(base64_png)` - Extract text from a base64-encoded PNG image
-- `extract_text_from_path(file_path)` - Extract text from a PNG file at a given path (useful with mounted volumes)
-- `save_to_tmp_dir(base64_png)` - Save a base64 PNG to `/tmp/utils_png/{uuid}.png` for shared access
-
-### Docker Volume Mount for PNG Tools
-
-When using PNG tools with file paths in Docker, mount the temp directory:
-
-```bash
-# Run with both PDF and PNG tmp directories mounted
-docker run --rm -i \
-  -v "$PWD/user.data.json:/app/user.data.json:ro" \
-  -v "/tmp/utils_pdf:/tmp/utils_pdf" \
-  -v "/tmp/utils_png:/tmp/utils_png" \
-  ezpy-tools
-```
-
-### MCP Config with Both PDF and PNG Temp Directories
-
-```json
-{
-  "mcpServers": {
-    "ezpy_tools_docker": {
-      "command": "docker",
-      "args": [
-        "run",
-        "--rm",
-        "-i",
-        "-v",
-        "/absolute/path/to/tools/user.data.json:/app/user.data.json:ro",
-        "-v",
-        "/tmp/utils_pdf:/tmp/utils_pdf",
-        "-v",
-        "/tmp/utils_png:/tmp/utils_png",
-        "ezpy-tools"
-      ]
-    }
-  }
-}
-```
+For local Python development, the `/tmp/ezpy_tools/pdf/` directory is created automatically. Files are saved with UUID-based filenames:
+- `*_save_to_file()` methods save to `/tmp/ezpy_tools/pdf/{uuid}.{ext}`
+- `*_from_tmp_to_tmp_dir()` methods read from file path, save to `/tmp/ezpy_tools/pdf/{uuid}.{ext}`
 
 ## Text Extraction Tools
 
@@ -153,7 +108,7 @@ The text utilities now include powerful text extraction capabilities from PDFs a
 
 ### PDF Text Extraction
 - `extract_from_pdf_base64(base64_pdf)` - Extract text from base64-encoded PDF (uses embedded text first, falls back to OCR)
-- `extract_from_pdf_path(file_path)` - Extract text from PDF file at given path (e.g., `/tmp/utils_pdf/document.pdf`)
+- `extract_from_pdf_path(file_path)` - Extract text from PDF file at given path (e.g., `/tmp/ezpy_tools/pdf/document.pdf`)
 
 ### Image Text Extraction (OCR)
 - `extract_from_image_base64(base64_image)` - Extract text from base64-encoded image using OCR
@@ -161,19 +116,14 @@ The text utilities now include powerful text extraction capabilities from PDFs a
 
 **Supported Image Formats:** PNG, JPEG, GIF, BMP, TIFF, WebP, ICO, PPM, PGM, PBM, and all formats supported by Pillow
 
-### File Saving Utility
-- `save_base64_to_tmp(base64_data, extension)` - Save any base64-encoded data to `/tmp/utils_text/{uuid}.{extension}` for shared access
-
 ### Docker Configuration for Text Extraction
 
-When using text extraction with file paths, mount all temp directories:
+When using text extraction with file paths, mount the temp directory:
 
 ```bash
 docker run --rm -i \
   -v "$PWD/user.data.json:/app/user.data.json:ro" \
-  -v "/tmp/utils_pdf:/tmp/utils_pdf" \
-  -v "/tmp/utils_png:/tmp/utils_png" \
-  -v "/tmp/utils_text:/tmp/utils_text" \
+  -v "/tmp/ezpy_tools:/tmp/ezpy_tools" \
   ezpy-tools
 ```
 
