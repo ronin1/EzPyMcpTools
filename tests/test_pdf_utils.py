@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import os
 import pathlib
 from io import BytesIO
 
@@ -240,3 +241,310 @@ def test_from_html_file() -> None:
     # Also verify at least 80% of all words are preserved
     matched = sum(1 for w in words if w in roundtrip_text)
     assert matched / len(words) >= 0.8, f"Only {matched}/{len(words)} words preserved"
+
+
+# Tests for *_save_to_file() functions
+
+
+def test_from_html_save_to_file_success(tmp_path, monkeypatch) -> None:
+    """Test from_html_save_to_file saves PDF to temp directory."""
+    # Use tmp_path for test isolation
+    monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: str(tmp_path))
+
+    html = "<html><body><h1>Test Save</h1></body></html>"
+    base64_html = base64.b64encode(html.encode()).decode()
+    result = pdf_utils.from_html_save_to_file(base64_html)
+
+    assert result["success"] is True
+    assert result["error"] is None
+    assert result["file_path"] is not None
+    assert result["file_path"].startswith(str(tmp_path))
+    assert result["file_path"].endswith(".pdf")
+    # Verify file exists
+    assert pathlib.Path(result["file_path"]).exists()
+
+
+def test_from_html_save_to_file_invalid_base64() -> None:
+    """Test from_html_save_to_file returns error for invalid input."""
+    result = pdf_utils.from_html_save_to_file("not-base64")
+    assert result["success"] is False
+    assert result["error"] is not None
+    assert result["file_path"] is None
+
+
+def test_from_png_save_to_file_success(tmp_path, monkeypatch) -> None:
+    """Test from_png_save_to_file saves PDF to temp directory."""
+    monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: str(tmp_path))
+
+    base64_png = _make_base64_png()
+    result = pdf_utils.from_png_save_to_file(base64_png)
+
+    assert result["success"] is True
+    assert result["error"] is None
+    assert result["file_path"] is not None
+    assert result["file_path"].startswith(str(tmp_path))
+    assert result["file_path"].endswith(".pdf")
+    # Verify file exists and is a valid PDF
+    assert pathlib.Path(result["file_path"]).exists()
+    with open(result["file_path"], "rb") as f:
+        assert f.read().startswith(b"%PDF")
+
+
+def test_from_png_save_to_file_invalid_base64() -> None:
+    """Test from_png_save_to_file returns error for invalid input."""
+    result = pdf_utils.from_png_save_to_file("not-base64")
+    assert result["success"] is False
+    assert result["error"] is not None
+    assert result["file_path"] is None
+
+
+def test_to_html_save_to_file_success(tmp_path, monkeypatch) -> None:
+    """Test to_html_save_to_file saves HTML to temp directory."""
+    monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: str(tmp_path))
+
+    # First create a PDF from HTML
+    html = "<html><body><p>Hello World</p></body></html>"
+    base64_html = base64.b64encode(html.encode()).decode()
+    pdf_res = pdf_utils.from_html(base64_html)
+    assert "base64_pdf" in pdf_res
+
+    # Then convert PDF to HTML and save
+    result = pdf_utils.to_html_save_to_file(pdf_res["base64_pdf"])
+
+    assert result["success"] is True
+    assert result["error"] is None
+    assert result["file_path"] is not None
+    assert result["file_path"].startswith(str(tmp_path))
+    assert result["file_path"].endswith(".html")
+    # Verify file exists and contains HTML
+    assert pathlib.Path(result["file_path"]).exists()
+    with open(result["file_path"], encoding="utf-8") as f:
+        content = f.read()
+        assert "Hello World" in content
+
+
+def test_to_html_save_to_file_invalid_base64() -> None:
+    """Test to_html_save_to_file returns error for invalid input."""
+    result = pdf_utils.to_html_save_to_file("not-base64")
+    assert result["success"] is False
+    assert result["error"] is not None
+    assert result["file_path"] is None
+
+
+def test_to_png_save_to_file_success(tmp_path, monkeypatch) -> None:
+    """Test to_png_save_to_file saves PNG to temp directory."""
+    monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: str(tmp_path))
+
+    # First create a PDF from PNG
+    base64_png = _make_base64_png()
+    pdf_res = pdf_utils.from_png(base64_png)
+    assert "base64_pdf" in pdf_res
+
+    # Then convert PDF to PNG and save
+    result = pdf_utils.to_png_save_to_file(pdf_res["base64_pdf"])
+
+    assert result["success"] is True
+    assert result["error"] is None
+    assert result["file_path"] is not None
+    assert result["file_path"].startswith(str(tmp_path))
+    assert result["file_path"].endswith(".png")
+    # Verify file exists and is a valid PNG
+    assert pathlib.Path(result["file_path"]).exists()
+    with Image.open(result["file_path"]) as image:
+        assert image.format == "PNG"
+
+
+def test_to_png_save_to_file_invalid_base64() -> None:
+    """Test to_png_save_to_file returns error for invalid input."""
+    result = pdf_utils.to_png_save_to_file("not-base64")
+    assert result["success"] is False
+    assert result["error"] is not None
+    assert result["file_path"] is None
+
+
+def test_to_png_save_to_file_invalid_page_number(tmp_path, monkeypatch) -> None:
+    """Test to_png_save_to_file returns error for invalid page number."""
+    monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: str(tmp_path))
+
+    # First create a PDF from PNG
+    base64_png = _make_base64_png()
+    pdf_res = pdf_utils.from_png(base64_png)
+    assert "base64_pdf" in pdf_res
+
+    # Try with invalid page number
+    result = pdf_utils.to_png_save_to_file(pdf_res["base64_pdf"], page_number=0)
+    assert result["success"] is False
+    assert result["error"] is not None
+    assert result["file_path"] is None
+
+
+def test_get_temp_dir_creates_directory(tmp_path, monkeypatch) -> None:
+    """Test _get_temp_dir creates directory if it doesn't exist."""
+    test_dir = str(tmp_path / "utils_pdf_test")
+    monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: test_dir)
+
+    # Call the real function with mocked temp_dir path
+    os.makedirs(test_dir, exist_ok=True)
+    assert pathlib.Path(test_dir).exists()
+
+
+# Tests for *_from_tmp_to_tmp_dir() functions
+
+
+def test_from_html_from_tmp_to_tmp_dir_success(tmp_path, monkeypatch) -> None:
+    """Test from_html_from_tmp_to_tmp_dir converts HTML file to PDF."""
+    monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: str(tmp_path))
+
+    # Create an HTML file
+    html_content = "<html><body><h1>From Tmp Test</h1></body></html>"
+    html_file = tmp_path / "input.html"
+    html_file.write_text(html_content, encoding="utf-8")
+
+    # Convert HTML file to PDF
+    result = pdf_utils.from_html_from_tmp_to_tmp_dir(str(html_file))
+
+    assert result["success"] is True
+    assert result["error"] is None
+    assert result["file_path"] is not None
+    assert result["file_path"].startswith(str(tmp_path))
+    assert result["file_path"].endswith(".pdf")
+    # Verify file exists and is valid PDF
+    assert pathlib.Path(result["file_path"]).exists()
+    with open(result["file_path"], "rb") as f:
+        assert f.read().startswith(b"%PDF")
+
+
+def test_from_html_from_tmp_to_tmp_dir_file_not_found() -> None:
+    """Test error handling for non-existent HTML file."""
+    result = pdf_utils.from_html_from_tmp_to_tmp_dir("/tmp/nonexistent/file.html")
+    assert result["success"] is False
+    assert result["error"] is not None
+    assert "not found" in result["error"].lower()
+    assert result["file_path"] is None
+
+
+def test_from_html_from_tmp_to_tmp_dir_empty_path() -> None:
+    """Test error handling for empty path."""
+    result = pdf_utils.from_html_from_tmp_to_tmp_dir("")
+    assert result["success"] is False
+    assert result["error"] is not None
+    assert result["file_path"] is None
+
+
+def test_from_png_from_tmp_to_tmp_dir_success(tmp_path, monkeypatch) -> None:
+    """Test from_png_from_tmp_to_tmp_dir converts PNG file to PDF."""
+    monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: str(tmp_path))
+
+    # Create a PNG file
+    base64_png = _make_base64_png()
+    png_bytes = base64.b64decode(base64_png)
+    png_file = tmp_path / "input.png"
+    png_file.write_bytes(png_bytes)
+
+    # Convert PNG file to PDF
+    result = pdf_utils.from_png_from_tmp_to_tmp_dir(str(png_file))
+
+    assert result["success"] is True
+    assert result["error"] is None
+    assert result["file_path"] is not None
+    assert result["file_path"].startswith(str(tmp_path))
+    assert result["file_path"].endswith(".pdf")
+    # Verify file exists
+    assert pathlib.Path(result["file_path"]).exists()
+
+
+def test_from_png_from_tmp_to_tmp_dir_file_not_found() -> None:
+    """Test error handling for non-existent PNG file."""
+    result = pdf_utils.from_png_from_tmp_to_tmp_dir("/tmp/nonexistent/file.png")
+    assert result["success"] is False
+    assert result["error"] is not None
+    assert "not found" in result["error"].lower()
+    assert result["file_path"] is None
+
+
+def test_to_html_from_tmp_to_tmp_dir_success(tmp_path, monkeypatch) -> None:
+    """Test to_html_from_tmp_to_tmp_dir converts PDF file to HTML."""
+    monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: str(tmp_path))
+
+    # First create a PDF file from HTML
+    html_content = "<html><body><p>Roundtrip Test</p></body></html>"
+    base64_html = base64.b64encode(html_content.encode()).decode()
+    pdf_result = pdf_utils.from_html_save_to_file(base64_html)
+    assert pdf_result["success"] is True
+
+    # Convert PDF file to HTML
+    result = pdf_utils.to_html_from_tmp_to_tmp_dir(pdf_result["file_path"])
+
+    assert result["success"] is True
+    assert result["error"] is None
+    assert result["file_path"] is not None
+    assert result["file_path"].startswith(str(tmp_path))
+    assert result["file_path"].endswith(".html")
+    # Verify file exists
+    assert pathlib.Path(result["file_path"]).exists()
+
+
+def test_to_html_from_tmp_to_tmp_dir_file_not_found() -> None:
+    """Test error handling for non-existent PDF file."""
+    result = pdf_utils.to_html_from_tmp_to_tmp_dir("/tmp/nonexistent/file.pdf")
+    assert result["success"] is False
+    assert result["error"] is not None
+    assert "not found" in result["error"].lower()
+    assert result["file_path"] is None
+
+
+def test_to_png_from_tmp_to_tmp_dir_success(tmp_path, monkeypatch) -> None:
+    """Test to_png_from_tmp_to_tmp_dir converts PDF file to PNG."""
+    monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: str(tmp_path))
+
+    # First create a PDF file from PNG
+    base64_png = _make_base64_png()
+    pdf_result = pdf_utils.from_png_save_to_file(base64_png)
+    assert pdf_result["success"] is True
+
+    # Convert PDF file to PNG
+    result = pdf_utils.to_png_from_tmp_to_tmp_dir(pdf_result["file_path"])
+
+    assert result["success"] is True
+    assert result["error"] is None
+    assert result["file_path"] is not None
+    assert result["file_path"].startswith(str(tmp_path))
+    assert result["file_path"].endswith(".png")
+    # Verify file exists and is valid PNG
+    assert pathlib.Path(result["file_path"]).exists()
+    with Image.open(result["file_path"]) as image:
+        assert image.format == "PNG"
+
+
+def test_to_png_from_tmp_to_tmp_dir_file_not_found() -> None:
+    """Test error handling for non-existent PDF file."""
+    result = pdf_utils.to_png_from_tmp_to_tmp_dir("/tmp/nonexistent/file.pdf")
+    assert result["success"] is False
+    assert result["error"] is not None
+    assert "not found" in result["error"].lower()
+    assert result["file_path"] is None
+
+
+def test_to_png_from_tmp_to_tmp_dir_invalid_page(tmp_path, monkeypatch) -> None:
+    """Test error handling for invalid page number."""
+    monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: str(tmp_path))
+
+    # First create a PDF file from PNG
+    base64_png = _make_base64_png()
+    pdf_result = pdf_utils.from_png_save_to_file(base64_png)
+    assert pdf_result["success"] is True
+
+    # Try with invalid page number
+    result = pdf_utils.to_png_from_tmp_to_tmp_dir(pdf_result["file_path"], page_number=0)
+    assert result["success"] is False
+    assert result["error"] is not None
+    assert result["file_path"] is None
+
+
+def test_from_html_from_tmp_to_tmp_dir_directory_input(tmp_path) -> None:
+    """Test error handling when input is a directory instead of file."""
+    result = pdf_utils.from_html_from_tmp_to_tmp_dir(str(tmp_path))
+    assert result["success"] is False
+    assert result["error"] is not None
+    assert "not a file" in result["error"].lower()
+    assert result["file_path"] is None

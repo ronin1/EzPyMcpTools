@@ -44,6 +44,109 @@ After pulling this project from GitHub:
 }
 ```
 
+## PDF Tools & Temporary File Sharing
+
+The PDF utilities include two sets of methods for working with files in `/tmp/utils_pdf/`:
+
+### `*_save_to_file()` - Base64 Input to File
+These methods take base64-encoded input and save the result to `/tmp/utils_pdf/`:
+- `from_html_save_to_file(base64_html)` → saves to `/tmp/utils_pdf/{uuid}.pdf`
+- `from_png_save_to_file(base64_png)` → saves to `/tmp/utils_pdf/{uuid}.pdf`
+- `to_html_save_to_file(base64_pdf)` → saves to `/tmp/utils_pdf/{uuid}.html`
+- `to_png_save_to_file(base64_pdf, page_number=1)` → saves to `/tmp/utils_pdf/{uuid}.png`
+
+### `*_from_tmp_to_tmp_dir()` - File Input to File  
+These methods read from files in `/tmp/utils_pdf/` and save the result back to `/tmp/utils_pdf/`:
+- `from_html_from_tmp_to_tmp_dir(file_path)` → reads HTML, saves PDF
+- `from_png_from_tmp_to_tmp_dir(file_path)` → reads PNG, saves PDF
+- `to_html_from_tmp_to_tmp_dir(file_path)` → reads PDF, saves HTML
+- `to_png_from_tmp_to_tmp_dir(file_path, page_number=1)` → reads PDF, saves PNG
+
+### Docker Volume Mount for PDF Tools
+
+When using the PDF methods in Docker, mount the temp directory as a shared volume:
+
+```bash
+# Run with tmp directory mounted for PDF file sharing
+docker run --rm -i \
+  -v "$PWD/user.data.json:/app/user.data.json:ro" \
+  -v "/tmp/utils_pdf:/tmp/utils_pdf" \
+  ezpy-tools
+```
+
+### MCP Config with PDF Temp Directory
+
+```json
+{
+  "mcpServers": {
+    "ezpy_tools_docker": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-v",
+        "/absolute/path/to/tools/user.data.json:/app/user.data.json:ro",
+        "-v",
+        "/tmp/utils_pdf:/tmp/utils_pdf",
+        "ezpy-tools"
+      ]
+    }
+  }
+}
+```
+
+### Local Development
+
+For local Python development, the `/tmp/utils_pdf/` directory is created automatically. Files are saved with UUID-based filenames:
+- `*_save_to_file()` methods save to `/tmp/utils_pdf/{uuid}.{ext}`
+- `*_from_tmp_to_tmp_dir()` methods read from file path, save to `/tmp/utils_pdf/{uuid}.{ext}`
+
+## PNG Tools & OCR Text Extraction
+
+The PNG utilities provide OCR (Optical Character Recognition) capabilities to extract text from images:
+
+- `extract_text_from_base64(base64_png)` - Extract text from a base64-encoded PNG image
+- `extract_text_from_path(file_path)` - Extract text from a PNG file at a given path (useful with mounted volumes)
+- `save_to_tmp_dir(base64_png)` - Save a base64 PNG to `/tmp/utils_png/{uuid}.png` for shared access
+
+### Docker Volume Mount for PNG Tools
+
+When using PNG tools with file paths in Docker, mount the temp directory:
+
+```bash
+# Run with both PDF and PNG tmp directories mounted
+docker run --rm -i \
+  -v "$PWD/user.data.json:/app/user.data.json:ro" \
+  -v "/tmp/utils_pdf:/tmp/utils_pdf" \
+  -v "/tmp/utils_png:/tmp/utils_png" \
+  ezpy-tools
+```
+
+### MCP Config with Both PDF and PNG Temp Directories
+
+```json
+{
+  "mcpServers": {
+    "ezpy_tools_docker": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-v",
+        "/absolute/path/to/tools/user.data.json:/app/user.data.json:ro",
+        "-v",
+        "/tmp/utils_pdf:/tmp/utils_pdf",
+        "-v",
+        "/tmp/utils_png:/tmp/utils_png",
+        "ezpy-tools"
+      ]
+    }
+  }
+}
+```
+
 ## Install Instructions
 
 - If you are new to MCP Tooling or just starting AI work. I recommend LmStudio over Ollama as LmStudio is simpler & easier to get started with.

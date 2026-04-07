@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import base64
 import html as html_lib
+import os
 import re
 import shutil
+import uuid
 from io import BytesIO
+from pathlib import Path
 from typing import Any
 
 import pypdfium2 as pdfium
@@ -17,6 +20,13 @@ from weasyprint import HTML
 
 SOURCE_HTML_METADATA_KEY = "/EzPySourceHTML"
 OCR_TEXT_MIN_LENGTH = 32
+
+
+def _get_temp_dir() -> str:
+    """Get or create the temporary directory for PDF files."""
+    temp_dir = "/tmp/utils_pdf"
+    os.makedirs(temp_dir, exist_ok=True)
+    return temp_dir
 
 
 def _strip_js_from_html(html_content: str) -> str:
@@ -420,3 +430,242 @@ def to_png(base64_pdf: str, page_number: int = 1) -> dict[str, Any]:
         return {"base64_png": base64_png}
     except Exception:
         return {"error": "An error occurred during conversion"}
+
+
+def from_html_save_to_file(base64_html: str) -> dict[str, Any]:
+    """Convert base64 encoded HTML content to a PDF file.
+
+    Note: Uses WeasyPrint for proper HTML/CSS rendering. JavaScript is stripped.
+    Saves the PDF to /tmp/utils_pdf/{uuid}.pdf for shared access.
+
+    Args:
+        base64_html: Base64 encoded string of the HTML content.
+
+    Returns:
+        Dict containing the absolute file path and processing status.
+    """
+    result = from_html(base64_html)
+
+    if "error" in result:
+        return {"success": False, "error": result["error"], "file_path": None}
+
+    try:
+        temp_dir = _get_temp_dir()
+        file_name = f"{uuid.uuid4()}.pdf"
+        file_path = os.path.join(temp_dir, file_name)
+
+        pdf_bytes = base64.b64decode(result["base64_pdf"])
+        with open(file_path, "wb") as f:
+            f.write(pdf_bytes)
+
+        return {"success": True, "file_path": file_path, "error": None}
+    except Exception as exc:
+        return {"success": False, "error": f"Failed to save file: {exc!s}", "file_path": None}
+
+
+def from_png_save_to_file(base64_png: str) -> dict[str, Any]:
+    """Convert base64 encoded PNG content to a PDF file.
+
+    Saves the PDF to /tmp/utils_pdf/{uuid}.pdf for shared access.
+
+    Args:
+        base64_png: Base64 encoded string of the PNG content.
+
+    Returns:
+        Dict containing the absolute file path and processing status.
+    """
+    result = from_png(base64_png)
+
+    if "error" in result:
+        return {"success": False, "error": result["error"], "file_path": None}
+
+    try:
+        temp_dir = _get_temp_dir()
+        file_name = f"{uuid.uuid4()}.pdf"
+        file_path = os.path.join(temp_dir, file_name)
+
+        pdf_bytes = base64.b64decode(result["base64_pdf"])
+        with open(file_path, "wb") as f:
+            f.write(pdf_bytes)
+
+        return {"success": True, "file_path": file_path, "error": None}
+    except Exception as exc:
+        return {"success": False, "error": f"Failed to save file: {exc!s}", "file_path": None}
+
+
+def to_html_save_to_file(base64_pdf: str) -> dict[str, Any]:
+    """Convert base64 encoded PDF content to an HTML file.
+
+    Saves the HTML to /tmp/utils_pdf/{uuid}.html for shared access.
+
+    Args:
+        base64_pdf: Base64 encoded string of the PDF content.
+
+    Returns:
+        Dict containing the absolute file path and processing status.
+    """
+    result = to_html(base64_pdf)
+
+    if "error" in result:
+        return {"success": False, "error": result["error"], "file_path": None}
+
+    try:
+        temp_dir = _get_temp_dir()
+        file_name = f"{uuid.uuid4()}.html"
+        file_path = os.path.join(temp_dir, file_name)
+
+        html_bytes = base64.b64decode(result["base64_html"])
+        with open(file_path, "wb") as f:
+            f.write(html_bytes)
+
+        return {"success": True, "file_path": file_path, "error": None}
+    except Exception as exc:
+        return {"success": False, "error": f"Failed to save file: {exc!s}", "file_path": None}
+
+
+def to_png_save_to_file(base64_pdf: str, page_number: int = 1) -> dict[str, Any]:
+    """Convert base64 encoded PDF content to a PNG file.
+
+    Saves the PNG to /tmp/utils_pdf/{uuid}.png for shared access.
+
+    Args:
+        base64_pdf: Base64 encoded string of the PDF content.
+        page_number: One-based PDF page number to render.
+
+    Returns:
+        Dict containing the absolute file path and processing status.
+    """
+    result = to_png(base64_pdf, page_number=page_number)
+
+    if "error" in result:
+        return {"success": False, "error": result["error"], "file_path": None}
+
+    try:
+        temp_dir = _get_temp_dir()
+        file_name = f"{uuid.uuid4()}.png"
+        file_path = os.path.join(temp_dir, file_name)
+
+        png_bytes = base64.b64decode(result["base64_png"])
+        with open(file_path, "wb") as f:
+            f.write(png_bytes)
+
+        return {"success": True, "file_path": file_path, "error": None}
+    except Exception as exc:
+        return {"success": False, "error": f"Failed to save file: {exc!s}", "file_path": None}
+
+
+def from_html_from_tmp_to_tmp_dir(file_path: str) -> dict[str, Any]:
+    """Convert HTML file from tmp directory to a PDF file in tmp directory.
+
+    Reads HTML from /tmp/utils_pdf/{file}, converts to PDF using WeasyPrint,
+    and saves the result to /tmp/utils_pdf/{uuid}.pdf.
+
+    Args:
+        file_path: Absolute path to the HTML file (typically in /tmp/utils_pdf/)."""
+    if not isinstance(file_path, str):
+        return {"success": False, "error": "Input must be a file path string", "file_path": None}
+    if not file_path:
+        return {"success": False, "error": "File path cannot be empty", "file_path": None}
+
+    path = Path(file_path)
+    if not path.exists():
+        return {"success": False, "error": f"File not found: {file_path}", "file_path": None}
+    if not path.is_file():
+        return {"success": False, "error": f"Path is not a file: {file_path}", "file_path": None}
+
+    try:
+        with open(path, encoding="utf-8") as f:
+            html_content = f.read()
+
+        base64_html = base64.b64encode(html_content.encode("utf-8")).decode("utf-8")
+        return from_html_save_to_file(base64_html)
+    except Exception as exc:
+        return {"success": False, "error": f"Failed to process file: {exc!s}", "file_path": None}
+
+
+def from_png_from_tmp_to_tmp_dir(file_path: str) -> dict[str, Any]:
+    """Convert PNG file from tmp directory to a PDF file in tmp directory.
+
+    Reads PNG from /tmp/utils_pdf/{file}, converts to PDF, and saves the
+    result to /tmp/utils_pdf/{uuid}.pdf.
+
+    Args:
+        file_path: Absolute path to the PNG file (typically in /tmp/utils_pdf/)."""
+    if not isinstance(file_path, str):
+        return {"success": False, "error": "Input must be a file path string", "file_path": None}
+    if not file_path:
+        return {"success": False, "error": "File path cannot be empty", "file_path": None}
+
+    path = Path(file_path)
+    if not path.exists():
+        return {"success": False, "error": f"File not found: {file_path}", "file_path": None}
+    if not path.is_file():
+        return {"success": False, "error": f"Path is not a file: {file_path}", "file_path": None}
+
+    try:
+        with open(path, "rb") as f:
+            png_bytes = f.read()
+
+        base64_png = base64.b64encode(png_bytes).decode("utf-8")
+        return from_png_save_to_file(base64_png)
+    except Exception as exc:
+        return {"success": False, "error": f"Failed to process file: {exc!s}", "file_path": None}
+
+
+def to_html_from_tmp_to_tmp_dir(file_path: str) -> dict[str, Any]:
+    """Convert PDF file from tmp directory to an HTML file in tmp directory.
+
+    Reads PDF from /tmp/utils_pdf/{file}, converts to HTML, and saves the
+    result to /tmp/utils_pdf/{uuid}.html.
+
+    Args:
+        file_path: Absolute path to the PDF file (typically in /tmp/utils_pdf/)."""
+    if not isinstance(file_path, str):
+        return {"success": False, "error": "Input must be a file path string", "file_path": None}
+    if not file_path:
+        return {"success": False, "error": "File path cannot be empty", "file_path": None}
+
+    path = Path(file_path)
+    if not path.exists():
+        return {"success": False, "error": f"File not found: {file_path}", "file_path": None}
+    if not path.is_file():
+        return {"success": False, "error": f"Path is not a file: {file_path}", "file_path": None}
+
+    try:
+        with open(path, "rb") as f:
+            pdf_bytes = f.read()
+
+        base64_pdf = base64.b64encode(pdf_bytes).decode("utf-8")
+        return to_html_save_to_file(base64_pdf)
+    except Exception as exc:
+        return {"success": False, "error": f"Failed to process file: {exc!s}", "file_path": None}
+
+
+def to_png_from_tmp_to_tmp_dir(file_path: str, page_number: int = 1) -> dict[str, Any]:
+    """Convert PDF file from tmp directory to a PNG file in tmp directory.
+
+    Reads PDF from /tmp/utils_pdf/{file}, converts page to PNG, and saves the
+    result to /tmp/utils_pdf/{uuid}.png.
+
+    Args:
+        file_path: Absolute path to the PDF file (typically in /tmp/utils_pdf/).
+        page_number: One-based PDF page number to render."""
+    if not isinstance(file_path, str):
+        return {"success": False, "error": "Input must be a file path string", "file_path": None}
+    if not file_path:
+        return {"success": False, "error": "File path cannot be empty", "file_path": None}
+
+    path = Path(file_path)
+    if not path.exists():
+        return {"success": False, "error": f"File not found: {file_path}", "file_path": None}
+    if not path.is_file():
+        return {"success": False, "error": f"Path is not a file: {file_path}", "file_path": None}
+
+    try:
+        with open(path, "rb") as f:
+            pdf_bytes = f.read()
+
+        base64_pdf = base64.b64encode(pdf_bytes).decode("utf-8")
+        return to_png_save_to_file(base64_pdf, page_number=page_number)
+    except Exception as exc:
+        return {"success": False, "error": f"Failed to process file: {exc!s}", "file_path": None}
