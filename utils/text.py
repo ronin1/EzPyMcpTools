@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import base64
-import os
 import shutil
 from io import BytesIO
 from pathlib import Path
@@ -335,13 +334,6 @@ def extract_from_image_path(file_path: str) -> dict[str, Any]:
         return {"text": text, "error": None}
     except Exception as exc:
         return {"error": f"An error occurred during extraction: {exc!s}", "text": None}
-
-
-def _get_temp_dir() -> str:
-    """Get or create the temporary directory for files."""
-    temp_dir = "/tmp/ezpy_tools/text"
-    os.makedirs(temp_dir, exist_ok=True)
-    return temp_dir
 
 
 def _validate_temp_path(file_path: str) -> tuple[bool, str | None]:
