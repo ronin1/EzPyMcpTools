@@ -29,6 +29,54 @@ def _get_temp_dir() -> str:
     return temp_dir
 
 
+def _validate_temp_path(file_path: str) -> tuple[bool, str | None]:
+    """Validate that a file path is within permitted /tmp/* directories.
+
+    This prevents directory traversal attacks by ensuring the resolved
+    path is within one of the allowed temporary directories.
+
+    Args:
+        file_path: The file path to validate.
+
+    Returns:
+        Tuple of (is_valid, error_message). is_valid is True if the path
+        is within permitted directories, False otherwise.
+    """
+    if not isinstance(file_path, str):
+        return False, "Input must be a file path string"
+    if not file_path:
+        return False, "File path cannot be empty"
+
+    try:
+        # Resolve the path to handle symlinks, .., ., etc.
+        path = Path(file_path).resolve()
+
+        # Define permitted directories (must be absolute paths)
+        permitted_prefixes = (
+            Path("/tmp/utils_pdf").resolve(),
+            Path("/tmp/utils_png").resolve(),
+            Path("/tmp/utils_text").resolve(),
+        )
+
+        # Check if the resolved path is within any permitted directory
+        for prefix in permitted_prefixes:
+            try:
+                # Check if path is the prefix itself or within it
+                path.relative_to(prefix)
+                return True, None
+            except ValueError:
+                # path is not relative to this prefix, try next
+                continue
+
+        # Path is not within any permitted directory
+        return (
+            False,
+            f"Access denied: Path '{file_path}' is not within permitted /tmp/* directories",
+        )
+    except Exception as exc:
+        return False, f"Invalid file path: {exc!s}"
+
+
 def _strip_js_from_html(html_content: str) -> str:
     """Remove JavaScript from HTML content.
 
@@ -559,13 +607,14 @@ def from_html_from_tmp_to_tmp_dir(file_path: str) -> dict[str, Any]:
 
     Reads HTML from /tmp/utils_pdf/{file}, converts to PDF using WeasyPrint,
     and saves the result to /tmp/utils_pdf/{uuid}.pdf.
+    Path is validated to ensure it's within permitted directories.
 
     Args:
         file_path: Absolute path to the HTML file (typically in /tmp/utils_pdf/)."""
-    if not isinstance(file_path, str):
-        return {"success": False, "error": "Input must be a file path string", "file_path": None}
-    if not file_path:
-        return {"success": False, "error": "File path cannot be empty", "file_path": None}
+    # Validate path is within permitted directories
+    is_valid, error_msg = _validate_temp_path(file_path)
+    if not is_valid:
+        return {"success": False, "error": error_msg, "file_path": None}
 
     path = Path(file_path)
     if not path.exists():
@@ -588,13 +637,14 @@ def from_png_from_tmp_to_tmp_dir(file_path: str) -> dict[str, Any]:
 
     Reads PNG from /tmp/utils_pdf/{file}, converts to PDF, and saves the
     result to /tmp/utils_pdf/{uuid}.pdf.
+    Path is validated to ensure it's within permitted directories.
 
     Args:
         file_path: Absolute path to the PNG file (typically in /tmp/utils_pdf/)."""
-    if not isinstance(file_path, str):
-        return {"success": False, "error": "Input must be a file path string", "file_path": None}
-    if not file_path:
-        return {"success": False, "error": "File path cannot be empty", "file_path": None}
+    # Validate path is within permitted directories
+    is_valid, error_msg = _validate_temp_path(file_path)
+    if not is_valid:
+        return {"success": False, "error": error_msg, "file_path": None}
 
     path = Path(file_path)
     if not path.exists():
@@ -617,13 +667,14 @@ def to_html_from_tmp_to_tmp_dir(file_path: str) -> dict[str, Any]:
 
     Reads PDF from /tmp/utils_pdf/{file}, converts to HTML, and saves the
     result to /tmp/utils_pdf/{uuid}.html.
+    Path is validated to ensure it's within permitted directories.
 
     Args:
         file_path: Absolute path to the PDF file (typically in /tmp/utils_pdf/)."""
-    if not isinstance(file_path, str):
-        return {"success": False, "error": "Input must be a file path string", "file_path": None}
-    if not file_path:
-        return {"success": False, "error": "File path cannot be empty", "file_path": None}
+    # Validate path is within permitted directories
+    is_valid, error_msg = _validate_temp_path(file_path)
+    if not is_valid:
+        return {"success": False, "error": error_msg, "file_path": None}
 
     path = Path(file_path)
     if not path.exists():
@@ -646,14 +697,15 @@ def to_png_from_tmp_to_tmp_dir(file_path: str, page_number: int = 1) -> dict[str
 
     Reads PDF from /tmp/utils_pdf/{file}, converts page to PNG, and saves the
     result to /tmp/utils_pdf/{uuid}.png.
+    Path is validated to ensure it's within permitted directories.
 
     Args:
         file_path: Absolute path to the PDF file (typically in /tmp/utils_pdf/).
         page_number: One-based PDF page number to render."""
-    if not isinstance(file_path, str):
-        return {"success": False, "error": "Input must be a file path string", "file_path": None}
-    if not file_path:
-        return {"success": False, "error": "File path cannot be empty", "file_path": None}
+    # Validate path is within permitted directories
+    is_valid, error_msg = _validate_temp_path(file_path)
+    if not is_valid:
+        return {"success": False, "error": error_msg, "file_path": None}
 
     path = Path(file_path)
     if not path.exists():

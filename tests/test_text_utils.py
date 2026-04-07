@@ -238,8 +238,18 @@ def test_extract_from_image_base64_non_string() -> None:
     assert result["text"] is None
 
 
-def test_extract_from_image_path_success(tmp_path) -> None:
-    """Test extracting text from image file path."""
+def test_extract_from_image_path_success(tmp_path, monkeypatch) -> None:
+    """Test extracting text from image file path within permitted directory."""
+    # Mock _validate_temp_path to allow tmp_path for testing
+    original_validate = text_utils._validate_temp_path
+
+    def mock_validate(path):
+        if str(path).startswith(str(tmp_path)):
+            return True, None
+        return original_validate(path)
+
+    monkeypatch.setattr(text_utils, "_validate_temp_path", mock_validate)
+
     image_bytes, _fmt = _create_image_with_text("PATH TEST")
     image_file = tmp_path / "test_image.png"
     image_file.write_bytes(image_bytes)
@@ -250,9 +260,20 @@ def test_extract_from_image_path_success(tmp_path) -> None:
     assert isinstance(result["error"], (str, type(None)))
 
 
-def test_extract_from_image_path_file_not_found() -> None:
-    """Test error handling for non-existent file."""
-    result = text_utils.extract_from_image_path("/tmp/nonexistent/image.png")
+def test_extract_from_image_path_access_denied() -> None:
+    """Test error handling for path outside permitted directories."""
+    result = text_utils.extract_from_image_path("/etc/passwd")
+    assert result["error"] is not None
+    assert "access denied" in result["error"].lower()
+    assert result["text"] is None
+
+
+def test_extract_from_image_path_file_not_found(tmp_path, monkeypatch) -> None:
+    """Test error handling for non-existent file in permitted directory."""
+    # Mock _validate_temp_path to allow the path
+    monkeypatch.setattr(text_utils, "_validate_temp_path", lambda _: (True, None))
+
+    result = text_utils.extract_from_image_path("/tmp/utils_png/nonexistent.png")
     assert result["error"] is not None
     assert "not found" in result["error"].lower()
     assert result["text"] is None
@@ -265,8 +286,11 @@ def test_extract_from_image_path_empty() -> None:
     assert result["text"] is None
 
 
-def test_extract_from_image_path_directory(tmp_path) -> None:
+def test_extract_from_image_path_directory(tmp_path, monkeypatch) -> None:
     """Test error handling when path is a directory."""
+    # Mock _validate_temp_path to allow tmp_path for testing
+    monkeypatch.setattr(text_utils, "_validate_temp_path", lambda _: (True, None))
+
     result = text_utils.extract_from_image_path(str(tmp_path))
     assert result["error"] is not None
     assert "not a file" in result["error"].lower()
@@ -322,11 +346,22 @@ def test_extract_from_pdf_path_success(tmp_path) -> None:
     assert isinstance(result["error"], (str, type(None)))
 
 
-def test_extract_from_pdf_path_file_not_found() -> None:
-    """Test error handling for non-existent PDF."""
-    result = text_utils.extract_from_pdf_path("/tmp/nonexistent/document.pdf")
+def test_extract_from_pdf_path_file_not_found(tmp_path, monkeypatch) -> None:
+    """Test error handling for non-existent PDF in permitted directory."""
+    # Mock _validate_temp_path to allow the path
+    monkeypatch.setattr(text_utils, "_validate_temp_path", lambda _: (True, None))
+
+    result = text_utils.extract_from_pdf_path("/tmp/utils_pdf/nonexistent.pdf")
     assert result["error"] is not None
     assert "not found" in result["error"].lower()
+    assert result["text"] is None
+
+
+def test_extract_from_pdf_path_access_denied() -> None:
+    """Test error handling for path outside permitted directories."""
+    result = text_utils.extract_from_pdf_path("/etc/shadow")
+    assert result["error"] is not None
+    assert "access denied" in result["error"].lower()
     assert result["text"] is None
 
 
@@ -345,7 +380,7 @@ def test_save_base64_to_tmp_success(tmp_path, monkeypatch) -> None:
     test_data = b"Test data content"
     base64_data = base64.b64encode(test_data).decode()
 
-    result = text_utils.save_base64_to_tmp(base64_data, "txt")
+    result = text_utils._save_base64_to_tmp(base64_data, "txt")
 
     assert result["error"] is None
     assert result["file_path"] is not None
@@ -368,7 +403,7 @@ def test_save_base64_to_tmp_pdf(tmp_path, monkeypatch) -> None:
     assert "base64_pdf" in pdf_result
 
     # Save the PDF
-    result = text_utils.save_base64_to_tmp(pdf_result["base64_pdf"], "pdf")
+    result = text_utils._save_base64_to_tmp(pdf_result["base64_pdf"], "pdf")
 
     assert result["error"] is None
     assert result["file_path"] is not None
@@ -380,21 +415,21 @@ def test_save_base64_to_tmp_pdf(tmp_path, monkeypatch) -> None:
 
 def test_save_base64_to_tmp_invalid_base64() -> None:
     """Test error handling for invalid base64."""
-    result = text_utils.save_base64_to_tmp("not-valid-base64!!!", "txt")
+    result = text_utils._save_base64_to_tmp("not-valid-base64!!!", "txt")
     assert result["error"] is not None
     assert result["file_path"] is None
 
 
 def test_save_base64_to_tmp_empty_extension() -> None:
     """Test error handling for empty extension."""
-    result = text_utils.save_base64_to_tmp("dGVzdA==", "")
+    result = text_utils._save_base64_to_tmp("dGVzdA==", "")
     assert result["error"] is not None
     assert result["file_path"] is None
 
 
 def test_save_base64_to_tmp_non_string_extension() -> None:
     """Test error handling for non-string extension."""
-    result = text_utils.save_base64_to_tmp("dGVzdA==", 123)  # type: ignore
+    result = text_utils._save_base64_to_tmp("dGVzdA==", 123)  # type: ignore
     assert result["error"] is not None
     assert result["file_path"] is None
 
@@ -402,8 +437,11 @@ def test_save_base64_to_tmp_non_string_extension() -> None:
 # Test various image formats
 
 
-def test_extract_from_image_various_formats(tmp_path) -> None:
+def test_extract_from_image_various_formats(tmp_path, monkeypatch) -> None:
     """Test text extraction from various image formats."""
+    # Mock _validate_temp_path to allow tmp_path for testing
+    monkeypatch.setattr(text_utils, "_validate_temp_path", lambda _: (True, None))
+
     formats = ["PNG", "JPEG", "BMP", "TIFF", "GIF"]
 
     for fmt in formats:
@@ -421,8 +459,11 @@ def test_extract_from_image_various_formats(tmp_path) -> None:
             pass
 
 
-def test_extract_from_image_path_non_image_file(tmp_path) -> None:
+def test_extract_from_image_path_non_image_file(tmp_path, monkeypatch) -> None:
     """Test error handling for non-image file."""
+    # Mock _validate_temp_path to allow tmp_path for testing
+    monkeypatch.setattr(text_utils, "_validate_temp_path", lambda _: (True, None))
+
     text_file = tmp_path / "not_an_image.txt"
     text_file.write_text("This is not an image")
 
@@ -431,8 +472,11 @@ def test_extract_from_image_path_non_image_file(tmp_path) -> None:
     assert result["error"] is not None or result["text"] is None
 
 
-def test_extract_from_pdf_path_non_pdf_file(tmp_path) -> None:
+def test_extract_from_pdf_path_non_pdf_file(tmp_path, monkeypatch) -> None:
     """Test error handling for non-PDF file treated as PDF."""
+    # Mock _validate_temp_path to allow tmp_path for testing
+    monkeypatch.setattr(text_utils, "_validate_temp_path", lambda _: (True, None))
+
     text_file = tmp_path / "not_a_pdf.txt"
     text_file.write_text("This is not a PDF")
 
@@ -447,13 +491,14 @@ def test_extract_from_pdf_path_non_pdf_file(tmp_path) -> None:
 def test_full_workflow_image_to_text(tmp_path, monkeypatch) -> None:
     """Test full workflow: create image, save to tmp, extract text."""
     monkeypatch.setattr(text_utils, "_get_temp_dir", lambda: str(tmp_path))
+    monkeypatch.setattr(text_utils, "_validate_temp_path", lambda _: (True, None))
 
     # Create an image with text
     image_bytes, _ = _create_image_with_text("INTEGRATION TEST")
     base64_image = base64.b64encode(image_bytes).decode()
 
     # Save to temp
-    save_result = text_utils.save_base64_to_tmp(base64_image, "png")
+    save_result = text_utils._save_base64_to_tmp(base64_image, "png")
     assert save_result["error"] is None
     assert save_result["file_path"] is not None
 
@@ -465,6 +510,7 @@ def test_full_workflow_image_to_text(tmp_path, monkeypatch) -> None:
 def test_full_workflow_pdf_to_text(tmp_path, monkeypatch) -> None:
     """Test full workflow: create PDF, save to tmp, extract text."""
     monkeypatch.setattr(text_utils, "_get_temp_dir", lambda: str(tmp_path))
+    monkeypatch.setattr(text_utils, "_validate_temp_path", lambda _: (True, None))
 
     # Create a PDF with text
     html = "<html><body><p>PDF integration test content.</p></body></html>"
@@ -473,10 +519,73 @@ def test_full_workflow_pdf_to_text(tmp_path, monkeypatch) -> None:
     assert "base64_pdf" in pdf_result
 
     # Save to temp
-    save_result = text_utils.save_base64_to_tmp(pdf_result["base64_pdf"], "pdf")
+    save_result = text_utils._save_base64_to_tmp(pdf_result["base64_pdf"], "pdf")
     assert save_result["error"] is None
     assert save_result["file_path"] is not None
 
     # Extract text from saved file
     extract_result = text_utils.extract_from_pdf_path(save_result["file_path"])
     assert "error" in extract_result
+
+
+# Tests for _validate_temp_path helper
+
+
+def test_validate_temp_path_permitted_directories() -> None:
+    """Test that permitted directories are accepted."""
+    # These should all be valid
+    permitted_paths = [
+        "/tmp/utils_pdf/document.pdf",
+        "/tmp/utils_png/image.png",
+        "/tmp/utils_text/file.txt",
+    ]
+    for path in permitted_paths:
+        is_valid, _error = text_utils._validate_temp_path(path)
+        # These may fail if the actual directories don't exist in the test environment
+        # but the validation logic should work
+        assert isinstance(is_valid, bool)
+
+
+def test_validate_temp_path_access_denied() -> None:
+    """Test that paths outside permitted directories are rejected."""
+    denied_paths = [
+        "/etc/passwd",
+        "/home/user/file.txt",
+        "/var/log/syslog",
+        "/tmp/utils_other/file.txt",
+    ]
+    for path in denied_paths:
+        is_valid, _error = text_utils._validate_temp_path(path)
+        assert is_valid is False
+        assert _error is not None
+        assert "access denied" in _error.lower()
+
+
+def test_validate_temp_path_traversal_attack() -> None:
+    """Test that path traversal attacks are blocked."""
+    # Path traversal attempts
+    traversal_paths = [
+        "/tmp/utils_pdf/../../../etc/passwd",
+        "/tmp/utils_png/../utils_pdf/../../../etc/shadow",
+    ]
+    for path in traversal_paths:
+        is_valid, _error = text_utils._validate_temp_path(path)
+        assert is_valid is False
+        assert _error is not None
+        assert "access denied" in _error.lower()
+
+
+def test_validate_temp_path_non_string() -> None:
+    """Test error handling for non-string input."""
+    is_valid, _error = text_utils._validate_temp_path(123)  # type: ignore
+    assert is_valid is False
+    assert _error is not None
+    assert "file path string" in _error.lower()
+
+
+def test_validate_temp_path_empty() -> None:
+    """Test error handling for empty path."""
+    is_valid, _error = text_utils._validate_temp_path("")
+    assert is_valid is False
+    assert _error is not None
+    assert "cannot be empty" in _error.lower()

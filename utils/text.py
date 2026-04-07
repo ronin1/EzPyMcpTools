@@ -240,6 +240,7 @@ def extract_from_pdf_path(file_path: str) -> dict[str, Any]:
     """Extract text from a PDF file at the given path.
 
     Designed for use with mounted volumes at /tmp/utils_pdf/.
+    Path is validated to ensure it's within permitted directories.
 
     Args:
         file_path: Absolute path to the PDF file.
@@ -247,10 +248,10 @@ def extract_from_pdf_path(file_path: str) -> dict[str, Any]:
     Returns:
         Dict with extracted `text` or `error` message.
     """
-    if not isinstance(file_path, str):
-        return {"error": "Input must be a file path string", "text": None}
-    if not file_path:
-        return {"error": "File path cannot be empty", "text": None}
+    # Validate path is within permitted directories
+    is_valid, error_msg = _validate_temp_path(file_path)
+    if not is_valid:
+        return {"error": error_msg, "text": None}
 
     path = Path(file_path)
     if not path.exists():
@@ -307,6 +308,7 @@ def extract_from_image_path(file_path: str) -> dict[str, Any]:
     Pillow: PNG, JPEG, GIF, BMP, TIFF, WebP, ICO, PPM, PGM, PBM, etc.
 
     Designed for use with mounted volumes at /tmp/utils_png/ or /tmp/utils_pdf/.
+    Path is validated to ensure it's within permitted directories.
 
     Args:
         file_path: Absolute path to the image file.
@@ -314,10 +316,10 @@ def extract_from_image_path(file_path: str) -> dict[str, Any]:
     Returns:
         Dict with extracted `text` or `error` message.
     """
-    if not isinstance(file_path, str):
-        return {"error": "Input must be a file path string", "text": None}
-    if not file_path:
-        return {"error": "File path cannot be empty", "text": None}
+    # Validate path is within permitted directories
+    is_valid, error_msg = _validate_temp_path(file_path)
+    if not is_valid:
+        return {"error": error_msg, "text": None}
 
     path = Path(file_path)
     if not path.exists():
@@ -343,7 +345,55 @@ def _get_temp_dir() -> str:
     return temp_dir
 
 
-def save_base64_to_tmp(base64_data: str, extension: str) -> dict[str, Any]:
+def _validate_temp_path(file_path: str) -> tuple[bool, str | None]:
+    """Validate that a file path is within permitted /tmp/* directories.
+
+    This prevents directory traversal attacks by ensuring the resolved
+    path is within one of the allowed temporary directories.
+
+    Args:
+        file_path: The file path to validate.
+
+    Returns:
+        Tuple of (is_valid, error_message). is_valid is True if the path
+        is within permitted directories, False otherwise.
+    """
+    if not isinstance(file_path, str):
+        return False, "Input must be a file path string"
+    if not file_path:
+        return False, "File path cannot be empty"
+
+    try:
+        # Resolve the path to handle symlinks, .., ., etc.
+        path = Path(file_path).resolve()
+
+        # Define permitted directories (must be absolute paths)
+        permitted_prefixes = (
+            Path("/tmp/utils_pdf").resolve(),
+            Path("/tmp/utils_png").resolve(),
+            Path("/tmp/utils_text").resolve(),
+        )
+
+        # Check if the resolved path is within any permitted directory
+        for prefix in permitted_prefixes:
+            try:
+                # Check if path is the prefix itself or within it
+                path.relative_to(prefix)
+                return True, None
+            except ValueError:
+                # path is not relative to this prefix, try next
+                continue
+
+        # Path is not within any permitted directory
+        return (
+            False,
+            f"Access denied: Path '{file_path}' is not within permitted /tmp/* directories",
+        )
+    except Exception as exc:
+        return False, f"Invalid file path: {exc!s}"
+
+
+def _save_base64_to_tmp(base64_data: str, extension: str) -> dict[str, Any]:
     """Save base64 encoded data to /tmp/utils_text/ for shared access.
 
     Args:

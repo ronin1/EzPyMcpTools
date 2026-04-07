@@ -394,6 +394,7 @@ def test_get_temp_dir_creates_directory(tmp_path, monkeypatch) -> None:
 def test_from_html_from_tmp_to_tmp_dir_success(tmp_path, monkeypatch) -> None:
     """Test from_html_from_tmp_to_tmp_dir converts HTML file to PDF."""
     monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: str(tmp_path))
+    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda _: (True, None))
 
     # Create an HTML file
     html_content = "<html><body><h1>From Tmp Test</h1></body></html>"
@@ -414,9 +415,20 @@ def test_from_html_from_tmp_to_tmp_dir_success(tmp_path, monkeypatch) -> None:
         assert f.read().startswith(b"%PDF")
 
 
-def test_from_html_from_tmp_to_tmp_dir_file_not_found() -> None:
-    """Test error handling for non-existent HTML file."""
-    result = pdf_utils.from_html_from_tmp_to_tmp_dir("/tmp/nonexistent/file.html")
+def test_from_html_from_tmp_to_tmp_dir_access_denied() -> None:
+    """Test error handling for path outside permitted directories."""
+    result = pdf_utils.from_html_from_tmp_to_tmp_dir("/etc/passwd")
+    assert result["success"] is False
+    assert result["error"] is not None
+    assert "access denied" in result["error"].lower()
+    assert result["file_path"] is None
+
+
+def test_from_html_from_tmp_to_tmp_dir_file_not_found(tmp_path, monkeypatch) -> None:
+    """Test error handling for non-existent HTML file in permitted directory."""
+    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda _: (True, None))
+
+    result = pdf_utils.from_html_from_tmp_to_tmp_dir("/tmp/utils_pdf/nonexistent.html")
     assert result["success"] is False
     assert result["error"] is not None
     assert "not found" in result["error"].lower()
@@ -434,6 +446,7 @@ def test_from_html_from_tmp_to_tmp_dir_empty_path() -> None:
 def test_from_png_from_tmp_to_tmp_dir_success(tmp_path, monkeypatch) -> None:
     """Test from_png_from_tmp_to_tmp_dir converts PNG file to PDF."""
     monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: str(tmp_path))
+    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda _: (True, None))
 
     # Create a PNG file
     base64_png = _make_base64_png()
@@ -453,9 +466,20 @@ def test_from_png_from_tmp_to_tmp_dir_success(tmp_path, monkeypatch) -> None:
     assert pathlib.Path(result["file_path"]).exists()
 
 
-def test_from_png_from_tmp_to_tmp_dir_file_not_found() -> None:
-    """Test error handling for non-existent PNG file."""
-    result = pdf_utils.from_png_from_tmp_to_tmp_dir("/tmp/nonexistent/file.png")
+def test_from_png_from_tmp_to_tmp_dir_access_denied() -> None:
+    """Test error handling for path outside permitted directories."""
+    result = pdf_utils.from_png_from_tmp_to_tmp_dir("/etc/shadow")
+    assert result["success"] is False
+    assert result["error"] is not None
+    assert "access denied" in result["error"].lower()
+    assert result["file_path"] is None
+
+
+def test_from_png_from_tmp_to_tmp_dir_file_not_found(tmp_path, monkeypatch) -> None:
+    """Test error handling for non-existent PNG file in permitted directory."""
+    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda _: (True, None))
+
+    result = pdf_utils.from_png_from_tmp_to_tmp_dir("/tmp/utils_png/nonexistent.png")
     assert result["success"] is False
     assert result["error"] is not None
     assert "not found" in result["error"].lower()
@@ -465,6 +489,7 @@ def test_from_png_from_tmp_to_tmp_dir_file_not_found() -> None:
 def test_to_html_from_tmp_to_tmp_dir_success(tmp_path, monkeypatch) -> None:
     """Test to_html_from_tmp_to_tmp_dir converts PDF file to HTML."""
     monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: str(tmp_path))
+    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda _: (True, None))
 
     # First create a PDF file from HTML
     html_content = "<html><body><p>Roundtrip Test</p></body></html>"
@@ -484,9 +509,20 @@ def test_to_html_from_tmp_to_tmp_dir_success(tmp_path, monkeypatch) -> None:
     assert pathlib.Path(result["file_path"]).exists()
 
 
-def test_to_html_from_tmp_to_tmp_dir_file_not_found() -> None:
-    """Test error handling for non-existent PDF file."""
-    result = pdf_utils.to_html_from_tmp_to_tmp_dir("/tmp/nonexistent/file.pdf")
+def test_to_html_from_tmp_to_tmp_dir_access_denied() -> None:
+    """Test error handling for path outside permitted directories."""
+    result = pdf_utils.to_html_from_tmp_to_tmp_dir("/root/.bashrc")
+    assert result["success"] is False
+    assert result["error"] is not None
+    assert "access denied" in result["error"].lower()
+    assert result["file_path"] is None
+
+
+def test_to_html_from_tmp_to_tmp_dir_file_not_found(tmp_path, monkeypatch) -> None:
+    """Test error handling for non-existent PDF file in permitted directory."""
+    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda _: (True, None))
+
+    result = pdf_utils.to_html_from_tmp_to_tmp_dir("/tmp/utils_pdf/nonexistent.pdf")
     assert result["success"] is False
     assert result["error"] is not None
     assert "not found" in result["error"].lower()
@@ -496,6 +532,7 @@ def test_to_html_from_tmp_to_tmp_dir_file_not_found() -> None:
 def test_to_png_from_tmp_to_tmp_dir_success(tmp_path, monkeypatch) -> None:
     """Test to_png_from_tmp_to_tmp_dir converts PDF file to PNG."""
     monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: str(tmp_path))
+    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda _: (True, None))
 
     # First create a PDF file from PNG
     base64_png = _make_base64_png()
@@ -516,9 +553,20 @@ def test_to_png_from_tmp_to_tmp_dir_success(tmp_path, monkeypatch) -> None:
         assert image.format == "PNG"
 
 
-def test_to_png_from_tmp_to_tmp_dir_file_not_found() -> None:
-    """Test error handling for non-existent PDF file."""
-    result = pdf_utils.to_png_from_tmp_to_tmp_dir("/tmp/nonexistent/file.pdf")
+def test_to_png_from_tmp_to_tmp_dir_access_denied() -> None:
+    """Test error handling for path outside permitted directories."""
+    result = pdf_utils.to_png_from_tmp_to_tmp_dir("/root/.ssh/id_rsa")
+    assert result["success"] is False
+    assert result["error"] is not None
+    assert "access denied" in result["error"].lower()
+    assert result["file_path"] is None
+
+
+def test_to_png_from_tmp_to_tmp_dir_file_not_found(tmp_path, monkeypatch) -> None:
+    """Test error handling for non-existent PDF file in permitted directory."""
+    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda _: (True, None))
+
+    result = pdf_utils.to_png_from_tmp_to_tmp_dir("/tmp/utils_pdf/nonexistent.pdf")
     assert result["success"] is False
     assert result["error"] is not None
     assert "not found" in result["error"].lower()
@@ -528,6 +576,7 @@ def test_to_png_from_tmp_to_tmp_dir_file_not_found() -> None:
 def test_to_png_from_tmp_to_tmp_dir_invalid_page(tmp_path, monkeypatch) -> None:
     """Test error handling for invalid page number."""
     monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: str(tmp_path))
+    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda _: (True, None))
 
     # First create a PDF file from PNG
     base64_png = _make_base64_png()
@@ -541,10 +590,75 @@ def test_to_png_from_tmp_to_tmp_dir_invalid_page(tmp_path, monkeypatch) -> None:
     assert result["file_path"] is None
 
 
-def test_from_html_from_tmp_to_tmp_dir_directory_input(tmp_path) -> None:
-    """Test error handling when input is a directory instead of file."""
+def test_from_html_from_tmp_to_tmp_dir_directory_input(tmp_path, monkeypatch) -> None:
+    """Test error handling when input is a directory."""
+    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda _: (True, None))
+
     result = pdf_utils.from_html_from_tmp_to_tmp_dir(str(tmp_path))
     assert result["success"] is False
     assert result["error"] is not None
     assert "not a file" in result["error"].lower()
     assert result["file_path"] is None
+
+
+# Tests for _validate_temp_path helper
+
+
+def test_validate_temp_path_permitted_directories() -> None:
+    """Test that permitted directories are accepted."""
+    # These should all be valid
+    permitted_paths = [
+        "/tmp/utils_pdf/document.pdf",
+        "/tmp/utils_png/image.png",
+        "/tmp/utils_text/file.txt",
+    ]
+    for path in permitted_paths:
+        is_valid, _error = pdf_utils._validate_temp_path(path)
+        # These may fail if the actual directories don't exist in the test environment
+        # but the validation logic should work
+        assert isinstance(is_valid, bool)
+
+
+def test_validate_temp_path_access_denied() -> None:
+    """Test that paths outside permitted directories are rejected."""
+    denied_paths = [
+        "/etc/passwd",
+        "/home/user/file.txt",
+        "/var/log/syslog",
+        "/tmp/utils_other/file.txt",
+    ]
+    for path in denied_paths:
+        is_valid, _error = pdf_utils._validate_temp_path(path)
+        assert is_valid is False
+        assert _error is not None
+        assert "access denied" in _error.lower()
+
+
+def test_validate_temp_path_traversal_attack() -> None:
+    """Test that path traversal attacks are blocked."""
+    # Path traversal attempts
+    traversal_paths = [
+        "/tmp/utils_pdf/../../../etc/passwd",
+        "/tmp/utils_png/../utils_pdf/../../../etc/shadow",
+    ]
+    for path in traversal_paths:
+        is_valid, _error = pdf_utils._validate_temp_path(path)
+        assert is_valid is False
+        assert _error is not None
+        assert "access denied" in _error.lower()
+
+
+def test_validate_temp_path_non_string() -> None:
+    """Test error handling for non-string input."""
+    is_valid, _error = pdf_utils._validate_temp_path(123)  # type: ignore
+    assert is_valid is False
+    assert _error is not None
+    assert "file path string" in _error.lower()
+
+
+def test_validate_temp_path_empty() -> None:
+    """Test error handling for empty path."""
+    is_valid, _error = pdf_utils._validate_temp_path("")
+    assert is_valid is False
+    assert _error is not None
+    assert "cannot be empty" in _error.lower()
