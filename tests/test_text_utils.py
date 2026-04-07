@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 from io import BytesIO
+from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -295,7 +296,7 @@ def test_extract_from_image_path_empty() -> None:
 def test_extract_from_image_path_directory(tmp_path, monkeypatch) -> None:
     """Test error handling when path is a directory."""
     # Mock _validate_temp_path to allow tmp_path for testing
-    monkeypatch.setattr(text_utils, "_validate_temp_path", lambda _: (True, None))
+    monkeypatch.setattr(text_utils, "_validate_temp_path", lambda p: (True, None, Path(p)))
 
     result = text_utils.extract_from_image_path(str(tmp_path))
     assert result["error"] is not None
@@ -315,11 +316,14 @@ def test_extract_from_pdf_base64_with_embedded_text() -> None:
     # Extract text from the PDF
     result = text_utils.extract_from_pdf_base64(pdf_result["base64_pdf"])
 
-    assert "error" in result
-    # Should either succeed with text or fail gracefully
-    if result["text"] is not None:
+    # Success case: should have "text" key and no "error" key
+    # Error case: should have "error" key and "text": None
+    if "error" in result:
+        assert result["text"] is None
+    else:
         # If text was extracted, it should contain our content
-        assert "embedded text content" in result["text"] or result["error"] is None
+        assert "text" in result
+        assert "embedded text content" in result["text"]
 
 
 def test_extract_from_pdf_base64_invalid() -> None:
@@ -388,7 +392,7 @@ def test_extract_from_pdf_path_empty() -> None:
 def test_extract_from_image_various_formats(tmp_path, monkeypatch) -> None:
     """Test text extraction from various image formats."""
     # Mock _validate_temp_path to allow tmp_path for testing
-    monkeypatch.setattr(text_utils, "_validate_temp_path", lambda _: (True, None))
+    monkeypatch.setattr(text_utils, "_validate_temp_path", lambda p: (True, None, Path(p)))
 
     formats = ["PNG", "JPEG", "BMP", "TIFF", "GIF"]
 
@@ -410,7 +414,7 @@ def test_extract_from_image_various_formats(tmp_path, monkeypatch) -> None:
 def test_extract_from_image_path_non_image_file(tmp_path, monkeypatch) -> None:
     """Test error handling for non-image file."""
     # Mock _validate_temp_path to allow tmp_path for testing
-    monkeypatch.setattr(text_utils, "_validate_temp_path", lambda _: (True, None))
+    monkeypatch.setattr(text_utils, "_validate_temp_path", lambda p: (True, None, Path(p)))
 
     text_file = tmp_path / "not_an_image.txt"
     text_file.write_text("This is not an image")
@@ -423,7 +427,7 @@ def test_extract_from_image_path_non_image_file(tmp_path, monkeypatch) -> None:
 def test_extract_from_pdf_path_non_pdf_file(tmp_path, monkeypatch) -> None:
     """Test error handling for non-PDF file treated as PDF."""
     # Mock _validate_temp_path to allow tmp_path for testing
-    monkeypatch.setattr(text_utils, "_validate_temp_path", lambda _: (True, None))
+    monkeypatch.setattr(text_utils, "_validate_temp_path", lambda p: (True, None, Path(p)))
 
     text_file = tmp_path / "not_a_pdf.txt"
     text_file.write_text("This is not a PDF")
@@ -438,7 +442,7 @@ def test_extract_from_pdf_path_non_pdf_file(tmp_path, monkeypatch) -> None:
 
 def test_full_workflow_image_to_text(tmp_path, monkeypatch) -> None:
     """Test full workflow: create image, save to tmp, extract text."""
-    monkeypatch.setattr(text_utils, "_validate_temp_path", lambda _: (True, None))
+    monkeypatch.setattr(text_utils, "_validate_temp_path", lambda p: (True, None, Path(p)))
 
     # Create an image with text and save directly
     image_bytes, _ = _create_image_with_text("INTEGRATION TEST")
@@ -452,7 +456,7 @@ def test_full_workflow_image_to_text(tmp_path, monkeypatch) -> None:
 
 def test_full_workflow_pdf_to_text(tmp_path, monkeypatch) -> None:
     """Test full workflow: create PDF, save to tmp, extract text."""
-    monkeypatch.setattr(text_utils, "_validate_temp_path", lambda _: (True, None))
+    monkeypatch.setattr(text_utils, "_validate_temp_path", lambda p: (True, None, Path(p)))
 
     # Create a PDF with text and save directly
     html = "<html><body><p>PDF integration test content.</p></body></html>"

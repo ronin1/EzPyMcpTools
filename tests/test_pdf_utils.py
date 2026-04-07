@@ -377,16 +377,11 @@ def test_to_png_save_to_file_invalid_page_number(tmp_path, monkeypatch) -> None:
     assert result["file_path"] is None
 
 
-def test_get_temp_dir_creates_directory(tmp_path, monkeypatch) -> None:
-    """Test _get_temp_dir creates and returns an existing directory."""
-    test_dir = str(tmp_path / "utils_pdf_test")
-    monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: test_dir)
-
+def test_get_temp_dir_returns_string_path() -> None:
+    """Test _get_temp_dir returns a string path."""
     temp_dir = pdf_utils._get_temp_dir()
-    temp_path = pathlib.Path(temp_dir)
-
-    assert temp_path.exists()
-    assert temp_path.is_dir()
+    assert isinstance(temp_dir, str)
+    assert temp_dir == "/tmp/ezpy_tools/pdf"
 
 
 # Tests for *_from_tmp_to_tmp_dir() functions
@@ -395,7 +390,7 @@ def test_get_temp_dir_creates_directory(tmp_path, monkeypatch) -> None:
 def test_from_html_from_tmp_to_tmp_dir_success(tmp_path, monkeypatch) -> None:
     """Test from_html_from_tmp_to_tmp_dir converts HTML file to PDF."""
     monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: str(tmp_path))
-    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda _: (True, None))
+    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda p: (True, None, pathlib.Path(p)))
 
     # Create an HTML file
     html_content = "<html><body><h1>From Tmp Test</h1></body></html>"
@@ -427,7 +422,7 @@ def test_from_html_from_tmp_to_tmp_dir_access_denied() -> None:
 
 def test_from_html_from_tmp_to_tmp_dir_file_not_found(tmp_path, monkeypatch) -> None:
     """Test error handling for non-existent HTML file in permitted directory."""
-    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda _: (True, None))
+    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda p: (True, None, pathlib.Path(p)))
 
     result = pdf_utils.from_html_from_tmp_to_tmp_dir("/tmp/ezpy_tools/pdf/nonexistent.html")
     assert result["success"] is False
@@ -447,7 +442,7 @@ def test_from_html_from_tmp_to_tmp_dir_empty_path() -> None:
 def test_from_png_from_tmp_to_tmp_dir_success(tmp_path, monkeypatch) -> None:
     """Test from_png_from_tmp_to_tmp_dir converts PNG file to PDF."""
     monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: str(tmp_path))
-    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda _: (True, None))
+    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda p: (True, None, pathlib.Path(p)))
 
     # Create a PNG file
     base64_png = _make_base64_png()
@@ -478,7 +473,7 @@ def test_from_png_from_tmp_to_tmp_dir_access_denied() -> None:
 
 def test_from_png_from_tmp_to_tmp_dir_file_not_found(tmp_path, monkeypatch) -> None:
     """Test error handling for non-existent PNG file in permitted directory."""
-    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda _: (True, None))
+    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda p: (True, None, pathlib.Path(p)))
 
     result = pdf_utils.from_png_from_tmp_to_tmp_dir("/tmp/ezpy_tools/png/nonexistent.png")
     assert result["success"] is False
@@ -490,7 +485,7 @@ def test_from_png_from_tmp_to_tmp_dir_file_not_found(tmp_path, monkeypatch) -> N
 def test_to_html_from_tmp_to_tmp_dir_success(tmp_path, monkeypatch) -> None:
     """Test to_html_from_tmp_to_tmp_dir converts PDF file to HTML."""
     monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: str(tmp_path))
-    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda _: (True, None))
+    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda p: (True, None, pathlib.Path(p)))
 
     # First create a PDF file from HTML
     html_content = "<html><body><p>Roundtrip Test</p></body></html>"
@@ -521,7 +516,7 @@ def test_to_html_from_tmp_to_tmp_dir_access_denied() -> None:
 
 def test_to_html_from_tmp_to_tmp_dir_file_not_found(tmp_path, monkeypatch) -> None:
     """Test error handling for non-existent PDF file in permitted directory."""
-    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda _: (True, None))
+    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda p: (True, None, pathlib.Path(p)))
 
     result = pdf_utils.to_html_from_tmp_to_tmp_dir("/tmp/ezpy_tools/pdf/nonexistent.pdf")
     assert result["success"] is False
@@ -533,7 +528,7 @@ def test_to_html_from_tmp_to_tmp_dir_file_not_found(tmp_path, monkeypatch) -> No
 def test_to_png_from_tmp_to_tmp_dir_success(tmp_path, monkeypatch) -> None:
     """Test to_png_from_tmp_to_tmp_dir converts PDF file to PNG."""
     monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: str(tmp_path))
-    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda _: (True, None))
+    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda p: (True, None, pathlib.Path(p)))
 
     # First create a PDF file from PNG
     base64_png = _make_base64_png()
@@ -565,7 +560,7 @@ def test_to_png_from_tmp_to_tmp_dir_access_denied() -> None:
 
 def test_to_png_from_tmp_to_tmp_dir_file_not_found(tmp_path, monkeypatch) -> None:
     """Test error handling for non-existent PDF file in permitted directory."""
-    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda _: (True, None))
+    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda p: (True, None, pathlib.Path(p)))
 
     result = pdf_utils.to_png_from_tmp_to_tmp_dir("/tmp/ezpy_tools/pdf/nonexistent.pdf")
     assert result["success"] is False
@@ -577,7 +572,7 @@ def test_to_png_from_tmp_to_tmp_dir_file_not_found(tmp_path, monkeypatch) -> Non
 def test_to_png_from_tmp_to_tmp_dir_invalid_page(tmp_path, monkeypatch) -> None:
     """Test error handling for invalid page number."""
     monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: str(tmp_path))
-    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda _: (True, None))
+    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda p: (True, None, pathlib.Path(p)))
 
     # First create a PDF file from PNG
     base64_png = _make_base64_png()
@@ -593,7 +588,7 @@ def test_to_png_from_tmp_to_tmp_dir_invalid_page(tmp_path, monkeypatch) -> None:
 
 def test_from_html_from_tmp_to_tmp_dir_directory_input(tmp_path, monkeypatch) -> None:
     """Test error handling when input is a directory."""
-    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda _: (True, None))
+    monkeypatch.setattr(pdf_utils, "_validate_temp_path", lambda p: (True, None, pathlib.Path(p)))
 
     result = pdf_utils.from_html_from_tmp_to_tmp_dir(str(tmp_path))
     assert result["success"] is False
