@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import base64
-import os
 import pathlib
 from io import BytesIO
 
@@ -379,13 +378,15 @@ def test_to_png_save_to_file_invalid_page_number(tmp_path, monkeypatch) -> None:
 
 
 def test_get_temp_dir_creates_directory(tmp_path, monkeypatch) -> None:
-    """Test _get_temp_dir creates directory if it doesn't exist."""
+    """Test _get_temp_dir creates and returns an existing directory."""
     test_dir = str(tmp_path / "utils_pdf_test")
     monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: test_dir)
 
-    # Call the real function with mocked temp_dir path
-    os.makedirs(test_dir, exist_ok=True)
-    assert pathlib.Path(test_dir).exists()
+    temp_dir = pdf_utils._get_temp_dir()
+    temp_path = pathlib.Path(temp_dir)
+
+    assert temp_path.exists()
+    assert temp_path.is_dir()
 
 
 # Tests for *_from_tmp_to_tmp_dir() functions
@@ -613,7 +614,7 @@ def test_validate_temp_path_permitted_directories() -> None:
         "/tmp/ezpy_tools/text/file.txt",
     ]
     for path in permitted_paths:
-        is_valid, _error = pdf_utils._validate_temp_path(path)
+        is_valid, _error, _path = pdf_utils._validate_temp_path(path)
         # These may fail if the actual directories don't exist in the test environment
         # but the validation logic should work
         assert isinstance(is_valid, bool)
@@ -628,7 +629,7 @@ def test_validate_temp_path_access_denied() -> None:
         "/tmp/utils_other/file.txt",
     ]
     for path in denied_paths:
-        is_valid, _error = pdf_utils._validate_temp_path(path)
+        is_valid, _error, _path = pdf_utils._validate_temp_path(path)
         assert is_valid is False
         assert _error is not None
         assert "access denied" in _error.lower()
@@ -642,7 +643,7 @@ def test_validate_temp_path_traversal_attack() -> None:
         "/tmp/ezpy_tools/png/../utils_pdf/../../../etc/shadow",
     ]
     for path in traversal_paths:
-        is_valid, _error = pdf_utils._validate_temp_path(path)
+        is_valid, _error, _path = pdf_utils._validate_temp_path(path)
         assert is_valid is False
         assert _error is not None
         assert "access denied" in _error.lower()
@@ -650,7 +651,7 @@ def test_validate_temp_path_traversal_attack() -> None:
 
 def test_validate_temp_path_non_string() -> None:
     """Test error handling for non-string input."""
-    is_valid, _error = pdf_utils._validate_temp_path(123)  # type: ignore
+    is_valid, _error, _path = pdf_utils._validate_temp_path(123)  # type: ignore
     assert is_valid is False
     assert _error is not None
     assert "file path string" in _error.lower()
@@ -658,7 +659,7 @@ def test_validate_temp_path_non_string() -> None:
 
 def test_validate_temp_path_empty() -> None:
     """Test error handling for empty path."""
-    is_valid, _error = pdf_utils._validate_temp_path("")
+    is_valid, _error, _path = pdf_utils._validate_temp_path("")
     assert is_valid is False
     assert _error is not None
     assert "cannot be empty" in _error.lower()

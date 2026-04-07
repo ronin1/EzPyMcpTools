@@ -229,7 +229,7 @@ def extract_from_pdf_base64(base64_pdf: str) -> dict[str, Any]:
         text = _extract_pdf_text_with_fallback(pdf_bytes)
         if text is None:
             return {"error": "Failed to extract text from PDF", "text": None}
-        return {"text": text, "error": None}
+        return {"text": text}
     except Exception as exc:
         return {"error": f"An error occurred during extraction: {exc!s}", "text": None}
 
@@ -247,23 +247,24 @@ def extract_from_pdf_path(file_path: str) -> dict[str, Any]:
         Dict with extracted `text` or `error` message.
     """
     # Validate path is within permitted directories
-    is_valid, error_msg = _validate_temp_path(file_path)
+    is_valid, error_msg, resolved_path = _validate_temp_path(file_path)
     if not is_valid:
         return {"error": error_msg, "text": None}
 
-    path = Path(file_path)
-    if not path.exists():
+    if resolved_path is None:
+        return {"error": "Internal validation error", "text": None}
+    if not resolved_path.exists():
         return {"error": f"File not found: {file_path}", "text": None}
-    if not path.is_file():
+    if not resolved_path.is_file():
         return {"error": f"Path is not a file: {file_path}", "text": None}
 
     try:
-        with open(path, "rb") as f:
+        with open(resolved_path, "rb") as f:
             pdf_bytes = f.read()
         text = _extract_pdf_text_with_fallback(pdf_bytes)
         if text is None:
             return {"error": "Failed to extract text from PDF", "text": None}
-        return {"text": text, "error": None}
+        return {"text": text}
     except Exception as exc:
         return {"error": f"An error occurred during extraction: {exc!s}", "text": None}
 
@@ -294,7 +295,7 @@ def extract_from_image_base64(base64_image: str) -> dict[str, Any]:
         text = _extract_image_text(image_bytes)
         if text is None:
             return {"error": "Failed to extract text from image", "text": None}
-        return {"text": text, "error": None}
+        return {"text": text}
     except Exception as exc:
         return {"error": f"An error occurred during extraction: {exc!s}", "text": None}
 
@@ -315,28 +316,29 @@ def extract_from_image_path(file_path: str) -> dict[str, Any]:
         Dict with extracted `text` or `error` message.
     """
     # Validate path is within permitted directories
-    is_valid, error_msg = _validate_temp_path(file_path)
+    is_valid, error_msg, resolved_path = _validate_temp_path(file_path)
     if not is_valid:
         return {"error": error_msg, "text": None}
 
-    path = Path(file_path)
-    if not path.exists():
+    if resolved_path is None:
+        return {"error": "Failed to resolve path", "text": None}
+    if not resolved_path.exists():
         return {"error": f"File not found: {file_path}", "text": None}
-    if not path.is_file():
+    if not resolved_path.is_file():
         return {"error": f"Path is not a file: {file_path}", "text": None}
 
     try:
-        with open(path, "rb") as f:
+        with open(resolved_path, "rb") as f:
             image_bytes = f.read()
         text = _extract_image_text(image_bytes)
         if text is None:
             return {"error": "Failed to extract text from image", "text": None}
-        return {"text": text, "error": None}
+        return {"text": text}
     except Exception as exc:
         return {"error": f"An error occurred during extraction: {exc!s}", "text": None}
 
 
-def _validate_temp_path(file_path: str) -> tuple[bool, str | None]:
+def _validate_temp_path(file_path: str) -> tuple[bool, str | None, Path | None]:
     """Validate that a file path is within permitted /tmp/* directories.
 
     This prevents directory traversal attacks by ensuring the resolved
@@ -346,13 +348,14 @@ def _validate_temp_path(file_path: str) -> tuple[bool, str | None]:
         file_path: The file path to validate.
 
     Returns:
-        Tuple of (is_valid, error_message). is_valid is True if the path
-        is within permitted directories, False otherwise.
+        Tuple of (is_valid, error_message, resolved_path). is_valid is True if the path
+        is within permitted directories, False otherwise. resolved_path is the validated
+        Path object if valid, None otherwise.
     """
     if not isinstance(file_path, str):
-        return False, "Input must be a file path string"
+        return False, "Input must be a file path string", None
     if not file_path:
-        return False, "File path cannot be empty"
+        return False, "File path cannot be empty", None
 
     try:
         # Resolve the path to handle symlinks, .., ., etc.
@@ -370,7 +373,7 @@ def _validate_temp_path(file_path: str) -> tuple[bool, str | None]:
             try:
                 # Check if path is the prefix itself or within it
                 path.relative_to(prefix)
-                return True, None
+                return True, None, path
             except ValueError:
                 # path is not relative to this prefix, try next
                 continue
@@ -379,6 +382,7 @@ def _validate_temp_path(file_path: str) -> tuple[bool, str | None]:
         return (
             False,
             f"Access denied: Path '{file_path}' is not within permitted /tmp/* directories",
+            None,
         )
     except Exception as exc:
-        return False, f"Invalid file path: {exc!s}"
+        return False, f"Invalid file path: {exc!s}", None

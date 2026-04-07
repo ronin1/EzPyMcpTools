@@ -29,7 +29,7 @@ def _get_temp_dir() -> str:
     return temp_dir
 
 
-def _validate_temp_path(file_path: str) -> tuple[bool, str | None]:
+def _validate_temp_path(file_path: str) -> tuple[bool, str | None, Path | None]:
     """Validate that a file path is within permitted /tmp/* directories.
 
     This prevents directory traversal attacks by ensuring the resolved
@@ -39,13 +39,14 @@ def _validate_temp_path(file_path: str) -> tuple[bool, str | None]:
         file_path: The file path to validate.
 
     Returns:
-        Tuple of (is_valid, error_message). is_valid is True if the path
-        is within permitted directories, False otherwise.
+        Tuple of (is_valid, error_message, resolved_path). is_valid is True if the path
+        is within permitted directories, False otherwise. resolved_path is the validated
+        Path object if valid, None otherwise.
     """
     if not isinstance(file_path, str):
-        return False, "Input must be a file path string"
+        return False, "Input must be a file path string", None
     if not file_path:
-        return False, "File path cannot be empty"
+        return False, "File path cannot be empty", None
 
     try:
         # Resolve the path to handle symlinks, .., ., etc.
@@ -63,7 +64,7 @@ def _validate_temp_path(file_path: str) -> tuple[bool, str | None]:
             try:
                 # Check if path is the prefix itself or within it
                 path.relative_to(prefix)
-                return True, None
+                return True, None, path
             except ValueError:
                 # path is not relative to this prefix, try next
                 continue
@@ -72,9 +73,10 @@ def _validate_temp_path(file_path: str) -> tuple[bool, str | None]:
         return (
             False,
             f"Access denied: Path '{file_path}' is not within permitted /tmp/* directories",
+            None,
         )
     except Exception as exc:
-        return False, f"Invalid file path: {exc!s}"
+        return False, f"Invalid file path: {exc!s}", None
 
 
 def _strip_js_from_html(html_content: str) -> str:
@@ -612,18 +614,19 @@ def from_html_from_tmp_to_tmp_dir(file_path: str) -> dict[str, Any]:
     Args:
         file_path: Absolute path to the HTML file (typically in /tmp/ezpy_tools/pdf/)."""
     # Validate path is within permitted directories
-    is_valid, error_msg = _validate_temp_path(file_path)
+    is_valid, error_msg, resolved_path = _validate_temp_path(file_path)
     if not is_valid:
         return {"success": False, "error": error_msg, "file_path": None}
 
-    path = Path(file_path)
-    if not path.exists():
+    if resolved_path is None:
+        return {"success": False, "error": "Internal validation error", "file_path": None}
+    if not resolved_path.exists():
         return {"success": False, "error": f"File not found: {file_path}", "file_path": None}
-    if not path.is_file():
+    if not resolved_path.is_file():
         return {"success": False, "error": f"Path is not a file: {file_path}", "file_path": None}
 
     try:
-        with open(path, encoding="utf-8") as f:
+        with open(resolved_path, encoding="utf-8") as f:
             html_content = f.read()
 
         base64_html = base64.b64encode(html_content.encode("utf-8")).decode("utf-8")
@@ -633,27 +636,29 @@ def from_html_from_tmp_to_tmp_dir(file_path: str) -> dict[str, Any]:
 
 
 def from_png_from_tmp_to_tmp_dir(file_path: str) -> dict[str, Any]:
-    """Convert PNG file from tmp directory to a PDF file in tmp directory.
+    """Convert a PNG file from a permitted tmp directory to a PDF in tmp.
 
-    Reads PNG from /tmp/ezpy_tools/pdf/{file}, converts to PDF, and saves the
-    result to /tmp/ezpy_tools/pdf/{uuid}.pdf.
+    Reads a PNG from a validator-permitted path under /tmp/ezpy_tools/*,
+    converts it to PDF, and saves the result to /tmp/ezpy_tools/pdf/{uuid}.pdf.
     Path is validated to ensure it's within permitted directories.
 
     Args:
-        file_path: Absolute path to the PNG file (typically in /tmp/ezpy_tools/pdf/)."""
+        file_path: Absolute path to the PNG file within a permitted
+            /tmp/ezpy_tools/* directory (for example, /tmp/ezpy_tools/png/)."""
     # Validate path is within permitted directories
-    is_valid, error_msg = _validate_temp_path(file_path)
+    is_valid, error_msg, resolved_path = _validate_temp_path(file_path)
     if not is_valid:
         return {"success": False, "error": error_msg, "file_path": None}
 
-    path = Path(file_path)
-    if not path.exists():
+    if resolved_path is None:
+        return {"success": False, "error": "Internal validation error", "file_path": None}
+    if not resolved_path.exists():
         return {"success": False, "error": f"File not found: {file_path}", "file_path": None}
-    if not path.is_file():
+    if not resolved_path.is_file():
         return {"success": False, "error": f"Path is not a file: {file_path}", "file_path": None}
 
     try:
-        with open(path, "rb") as f:
+        with open(resolved_path, "rb") as f:
             png_bytes = f.read()
 
         base64_png = base64.b64encode(png_bytes).decode("utf-8")
@@ -672,18 +677,19 @@ def to_html_from_tmp_to_tmp_dir(file_path: str) -> dict[str, Any]:
     Args:
         file_path: Absolute path to the PDF file (typically in /tmp/ezpy_tools/pdf/)."""
     # Validate path is within permitted directories
-    is_valid, error_msg = _validate_temp_path(file_path)
+    is_valid, error_msg, resolved_path = _validate_temp_path(file_path)
     if not is_valid:
         return {"success": False, "error": error_msg, "file_path": None}
 
-    path = Path(file_path)
-    if not path.exists():
+    if resolved_path is None:
+        return {"success": False, "error": "Internal validation error", "file_path": None}
+    if not resolved_path.exists():
         return {"success": False, "error": f"File not found: {file_path}", "file_path": None}
-    if not path.is_file():
+    if not resolved_path.is_file():
         return {"success": False, "error": f"Path is not a file: {file_path}", "file_path": None}
 
     try:
-        with open(path, "rb") as f:
+        with open(resolved_path, "rb") as f:
             pdf_bytes = f.read()
 
         base64_pdf = base64.b64encode(pdf_bytes).decode("utf-8")
@@ -703,18 +709,19 @@ def to_png_from_tmp_to_tmp_dir(file_path: str, page_number: int = 1) -> dict[str
         file_path: Absolute path to the PDF file (typically in /tmp/ezpy_tools/pdf/).
         page_number: One-based PDF page number to render."""
     # Validate path is within permitted directories
-    is_valid, error_msg = _validate_temp_path(file_path)
+    is_valid, error_msg, resolved_path = _validate_temp_path(file_path)
     if not is_valid:
         return {"success": False, "error": error_msg, "file_path": None}
 
-    path = Path(file_path)
-    if not path.exists():
+    if resolved_path is None:
+        return {"success": False, "error": "Internal validation error", "file_path": None}
+    if not resolved_path.exists():
         return {"success": False, "error": f"File not found: {file_path}", "file_path": None}
-    if not path.is_file():
+    if not resolved_path.is_file():
         return {"success": False, "error": f"Path is not a file: {file_path}", "file_path": None}
 
     try:
-        with open(path, "rb") as f:
+        with open(resolved_path, "rb") as f:
             pdf_bytes = f.read()
 
         base64_pdf = base64.b64encode(pdf_bytes).decode("utf-8")

@@ -242,9 +242,12 @@ def test_extract_from_image_path_success(tmp_path, monkeypatch) -> None:
     # Mock _validate_temp_path to allow tmp_path for testing
     original_validate = text_utils._validate_temp_path
 
-    def mock_validate(path):
-        if str(path).startswith(str(tmp_path)):
-            return True, None
+    def mock_validate(path: str):
+        # Accept any path in tmp_path for testing
+        if str(tmp_path) in path:
+            from pathlib import Path
+
+            return (True, None, Path(path))
         return original_validate(path)
 
     monkeypatch.setattr(text_utils, "_validate_temp_path", mock_validate)
@@ -270,7 +273,11 @@ def test_extract_from_image_path_access_denied() -> None:
 def test_extract_from_image_path_file_not_found(tmp_path, monkeypatch) -> None:
     """Test error handling for non-existent file in permitted directory."""
     # Mock _validate_temp_path to allow the path
-    monkeypatch.setattr(text_utils, "_validate_temp_path", lambda _: (True, None))
+    from pathlib import Path
+
+    monkeypatch.setattr(
+        text_utils, "_validate_temp_path", lambda _: (True, None, Path("/tmp/test"))
+    )
 
     result = text_utils.extract_from_image_path("/tmp/ezpy_tools/png/nonexistent.png")
     assert result["error"] is not None
@@ -348,7 +355,11 @@ def test_extract_from_pdf_path_success(tmp_path) -> None:
 def test_extract_from_pdf_path_file_not_found(tmp_path, monkeypatch) -> None:
     """Test error handling for non-existent PDF in permitted directory."""
     # Mock _validate_temp_path to allow the path
-    monkeypatch.setattr(text_utils, "_validate_temp_path", lambda _: (True, None))
+    from pathlib import Path
+
+    monkeypatch.setattr(
+        text_utils, "_validate_temp_path", lambda _: (True, None, Path("/tmp/test"))
+    )
 
     result = text_utils.extract_from_pdf_path("/tmp/ezpy_tools/pdf/nonexistent.pdf")
     assert result["error"] is not None
@@ -466,7 +477,7 @@ def test_validate_temp_path_permitted_directories() -> None:
         "/tmp/ezpy_tools/text/file.txt",
     ]
     for path in permitted_paths:
-        is_valid, _error = text_utils._validate_temp_path(path)
+        is_valid, _error, _path = text_utils._validate_temp_path(path)
         # These may fail if the actual directories don't exist in the test environment
         # but the validation logic should work
         assert isinstance(is_valid, bool)
@@ -481,7 +492,7 @@ def test_validate_temp_path_access_denied() -> None:
         "/tmp/utils_other/file.txt",
     ]
     for path in denied_paths:
-        is_valid, _error = text_utils._validate_temp_path(path)
+        is_valid, _error, _path = text_utils._validate_temp_path(path)
         assert is_valid is False
         assert _error is not None
         assert "access denied" in _error.lower()
@@ -495,7 +506,7 @@ def test_validate_temp_path_traversal_attack() -> None:
         "/tmp/ezpy_tools/png/../utils_pdf/../../../etc/shadow",
     ]
     for path in traversal_paths:
-        is_valid, _error = text_utils._validate_temp_path(path)
+        is_valid, _error, _path = text_utils._validate_temp_path(path)
         assert is_valid is False
         assert _error is not None
         assert "access denied" in _error.lower()
@@ -503,7 +514,7 @@ def test_validate_temp_path_traversal_attack() -> None:
 
 def test_validate_temp_path_non_string() -> None:
     """Test error handling for non-string input."""
-    is_valid, _error = text_utils._validate_temp_path(123)  # type: ignore
+    is_valid, _error, _path = text_utils._validate_temp_path(123)  # type: ignore
     assert is_valid is False
     assert _error is not None
     assert "file path string" in _error.lower()
@@ -511,7 +522,7 @@ def test_validate_temp_path_non_string() -> None:
 
 def test_validate_temp_path_empty() -> None:
     """Test error handling for empty path."""
-    is_valid, _error = text_utils._validate_temp_path("")
+    is_valid, _error, _path = text_utils._validate_temp_path("")
     assert is_valid is False
     assert _error is not None
     assert "cannot be empty" in _error.lower()
