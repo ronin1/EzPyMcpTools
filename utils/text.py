@@ -14,6 +14,8 @@ from PIL import Image
 from pypdf import PdfReader
 
 OCR_TEXT_MIN_LENGTH = 32
+_OCR_RENDER_SCALE = 3
+_OCR_CONFIG = "--psm 6 -c preserve_interword_spaces=1"
 
 
 def words_count(text: str) -> dict[str, Any]:
@@ -103,20 +105,35 @@ def from_base64(base64_str: str) -> dict[str, Any]:
 
 
 def _normalize_extracted_text(text: str) -> str:
-    """Normalize extracted text while keeping line boundaries useful."""
-    normalized_lines = []
+    """Normalize extracted text preserving horizontal spacing for form alignment.
+
+    Strips trailing whitespace per line and collapses runs of blank lines
+    while keeping internal horizontal spacing intact for column-aligned content.
+    """
+    lines: list[str] = []
+    consecutive_blanks = 0
     for line in text.splitlines():
-        normalized_line = " ".join(line.split())
-        if normalized_line:
-            normalized_lines.append(normalized_line)
-    return "\n".join(normalized_lines)
+        stripped = line.rstrip()
+        if not stripped:
+            consecutive_blanks += 1
+            if consecutive_blanks <= 1:
+                lines.append("")
+            continue
+        consecutive_blanks = 0
+        lines.append(stripped)
+    while lines and not lines[0]:
+        lines.pop(0)
+    while lines and not lines[-1]:
+        lines.pop()
+    return "\n".join(lines)
 
 
 def _extract_pdf_text_with_fallback(pdf_bytes: bytes) -> str | None:
     """Extract text from PDF bytes, using OCR if embedded text is insufficient.
 
-    First attempts to extract embedded text from PDF. If insufficient,
-    renders pages to images and uses OCR.
+    First attempts layout-preserving embedded text extraction from PDF.
+    If insufficient, renders pages at higher DPI and uses OCR with
+    form-aware config that preserves interword spacing.
 
     Args:
         pdf_bytes: PDF file bytes.
@@ -124,12 +141,11 @@ def _extract_pdf_text_with_fallback(pdf_bytes: bytes) -> str | None:
     Returns:
         Extracted text or None if extraction fails.
     """
-    # Try embedded text extraction first
     try:
         reader = PdfReader(BytesIO(pdf_bytes))
         text_parts = []
         for page in reader.pages:
-            text = page.extract_text()
+            text = page.extract_text(extraction_mode="layout")
             if text:
                 normalized = _normalize_extracted_text(text)
                 if normalized:
@@ -140,7 +156,6 @@ def _extract_pdf_text_with_fallback(pdf_bytes: bytes) -> str | None:
     except Exception:
         pass
 
-    # Fall back to OCR if embedded text is insufficient
     if shutil.which("tesseract") is None:
         return None
 
@@ -153,15 +168,19 @@ def _extract_pdf_text_with_fallback(pdf_bytes: bytes) -> str | None:
             page = None
             bitmap = None
             image = None
+            gray = None
             try:
                 page = pdf_document[page_index]
-                bitmap = page.render(scale=2)
+                bitmap = page.render(scale=_OCR_RENDER_SCALE)
                 image = bitmap.to_pil()
-                ocr_text = pytesseract.image_to_string(image)
+                gray = image.convert("L")
+                ocr_text = pytesseract.image_to_string(gray, config=_OCR_CONFIG)
                 normalized = _normalize_extracted_text(ocr_text)
                 if normalized:
                     ocr_parts.append(normalized)
             finally:
+                if gray is not None:
+                    gray.close()
                 if image is not None:
                     image.close()
                 if bitmap is not None:
@@ -179,7 +198,10 @@ def _extract_pdf_text_with_fallback(pdf_bytes: bytes) -> str | None:
 
 
 def _extract_image_text(image_bytes: bytes) -> str | None:
-    """Extract text from image bytes using OCR.
+    """Extract text from image bytes using OCR with form-aware config.
+
+    Converts to grayscale for better OCR accuracy and uses Tesseract
+    config that preserves interword spacing for form alignment.
 
     Supports all image formats supported by Pillow (PNG, JPEG, GIF, BMP,
     TIFF, WebP, ICO, PPM, PGM, PBM, etc.).
@@ -195,13 +217,11 @@ def _extract_image_text(image_bytes: bytes) -> str | None:
 
     try:
         with Image.open(BytesIO(image_bytes)) as image:
-            # Convert to RGB if necessary (for formats with transparency or palette)
-            if image.mode in ("RGBA", "P", "LA", "L", "1"):
-                rgb_image = image.convert("RGB")
-                ocr_text = pytesseract.image_to_string(rgb_image)
-                rgb_image.close()
-            else:
-                ocr_text = pytesseract.image_to_string(image)
+            gray = image.convert("L")
+            try:
+                ocr_text = pytesseract.image_to_string(gray, config=_OCR_CONFIG)
+            finally:
+                gray.close()
         normalized = _normalize_extracted_text(ocr_text)
         return normalized if normalized else None
     except Exception:

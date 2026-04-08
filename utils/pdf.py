@@ -20,6 +20,8 @@ from weasyprint import HTML
 
 SOURCE_HTML_METADATA_KEY = "/EzPySourceHTML"
 OCR_TEXT_MIN_LENGTH = 32
+_OCR_RENDER_SCALE = 3
+_OCR_CONFIG = "--psm 6 -c preserve_interword_spaces=1"
 
 
 def _get_temp_dir() -> str:
@@ -102,13 +104,27 @@ def _html_to_pdf_bytes(html_content: str) -> bytes | None:
 
 
 def _normalize_extracted_text(text: str) -> str:
-    """Normalize extracted text while keeping line boundaries useful."""
-    normalized_lines = []
+    """Normalize extracted text preserving horizontal spacing for form alignment.
+
+    Strips trailing whitespace per line and collapses runs of blank lines
+    while keeping internal horizontal spacing intact for column-aligned content.
+    """
+    lines: list[str] = []
+    consecutive_blanks = 0
     for line in text.splitlines():
-        normalized_line = " ".join(line.split())
-        if normalized_line:
-            normalized_lines.append(normalized_line)
-    return "\n".join(normalized_lines)
+        stripped = line.rstrip()
+        if not stripped:
+            consecutive_blanks += 1
+            if consecutive_blanks <= 1:
+                lines.append("")
+            continue
+        consecutive_blanks = 0
+        lines.append(stripped)
+    while lines and not lines[0]:
+        lines.pop(0)
+    while lines and not lines[-1]:
+        lines.pop()
+    return "\n".join(lines)
 
 
 def _embed_source_html_in_pdf(pdf_bytes: bytes, html_content: str) -> bytes | None:
@@ -151,12 +167,12 @@ def _extract_embedded_source_html(pdf_bytes: bytes) -> str | None:
 
 
 def _extract_pdf_text(pdf_bytes: bytes) -> str | None:
-    """Extract readable text from PDF bytes."""
+    """Extract readable text from PDF bytes preserving layout spacing."""
     try:
         reader = PdfReader(BytesIO(pdf_bytes))
         text_parts = []
         for page in reader.pages:
-            text = page.extract_text()
+            text = page.extract_text(extraction_mode="layout")
             if text:
                 normalized_text = _normalize_extracted_text(text)
                 if normalized_text:
@@ -168,21 +184,31 @@ def _extract_pdf_text(pdf_bytes: bytes) -> str | None:
 
 
 def _ocr_png_bytes(png_bytes: bytes) -> str | None:
-    """OCR PNG bytes when no embedded PDF text is available."""
+    """OCR PNG bytes with grayscale preprocessing and form-aware config."""
     if shutil.which("tesseract") is None:
         return None
 
     try:
         with Image.open(BytesIO(png_bytes)) as image:
-            ocr_text = pytesseract.image_to_string(image)
+            gray = image.convert("L")
+            try:
+                ocr_text = pytesseract.image_to_string(gray, config=_OCR_CONFIG)
+            finally:
+                gray.close()
         normalized_text = _normalize_extracted_text(ocr_text)
         return normalized_text or None
     except Exception:
         return None
 
 
-def _pdf_bytes_to_all_png_bytes(pdf_bytes: bytes) -> list[bytes] | None:
-    """Render all PDF pages to PNG bytes."""
+def _pdf_bytes_to_all_png_bytes(pdf_bytes: bytes, scale: int = 2) -> list[bytes] | None:
+    """Render all PDF pages to PNG bytes.
+
+    Args:
+        pdf_bytes: PDF file bytes.
+        scale: Render scale multiplier (72 DPI x scale). Default 2 (144 DPI)
+            for display; use ``_OCR_RENDER_SCALE`` for OCR.
+    """
     pdf_document = None
 
     try:
@@ -196,7 +222,7 @@ def _pdf_bytes_to_all_png_bytes(pdf_bytes: bytes) -> list[bytes] | None:
 
             try:
                 page = pdf_document[page_index]
-                bitmap = page.render(scale=2)
+                bitmap = page.render(scale=scale)
                 image = bitmap.to_pil()
 
                 png_buffer = BytesIO()
@@ -295,14 +321,16 @@ def _pdf_bytes_to_html(pdf_bytes: bytes) -> str | None:
 
     extracted_text = _extract_pdf_text(pdf_bytes)
     if extracted_text is None or len(extracted_text) < OCR_TEXT_MIN_LENGTH:
-        ocr_text_parts = []
-        for page_png in page_pngs:
-            ocr_text = _ocr_png_bytes(page_png)
-            if ocr_text:
-                ocr_text_parts.append(ocr_text)
-        ocr_text = "\n\n".join(ocr_text_parts) if ocr_text_parts else None
-        if ocr_text and (extracted_text is None or len(ocr_text) > len(extracted_text)):
-            extracted_text = ocr_text
+        ocr_pngs = _pdf_bytes_to_all_png_bytes(pdf_bytes, scale=_OCR_RENDER_SCALE)
+        if ocr_pngs:
+            ocr_text_parts = []
+            for page_png in ocr_pngs:
+                ocr_text = _ocr_png_bytes(page_png)
+                if ocr_text:
+                    ocr_text_parts.append(ocr_text)
+            ocr_text = "\n\n".join(ocr_text_parts) if ocr_text_parts else None
+            if ocr_text and (extracted_text is None or len(ocr_text) > len(extracted_text)):
+                extracted_text = ocr_text
 
     return _rendered_pages_to_html(page_pngs, extracted_text)
 
