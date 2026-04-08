@@ -500,6 +500,91 @@ def test_convert_pdf_file_to_png_invalid_page(tmp_path, monkeypatch) -> None:
     assert result["file_path"] is None
 
 
+# Tests for convert_pdf_file_to_pngs (all pages)
+
+
+def test_convert_pdf_file_to_pngs_success(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: str(tmp_path))
+
+    html = "<html><body><p>Page one</p></body></html>"
+    base64_html = base64.b64encode(html.encode()).decode()
+    pdf_result = pdf_utils.save_pdf_from_html(base64_html)
+    assert pdf_result["success"] is True
+
+    result = pdf_utils.convert_pdf_file_to_pngs(pdf_result["file_path"])
+
+    assert result["success"] is True
+    assert result["error"] is None
+    assert result["page_count"] == 1
+    assert len(result["file_paths"]) == 1
+    assert result["file_paths"][0].endswith(".png")
+    assert pathlib.Path(result["file_paths"][0]).exists()
+    with Image.open(result["file_paths"][0]) as image:
+        assert image.format == "PNG"
+
+
+def test_convert_pdf_file_to_pngs_multipage(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: str(tmp_path))
+
+    html = (
+        "<html><body>"
+        '<div style="page-break-after: always;">Page 1</div>'
+        "<div>Page 2</div>"
+        "</body></html>"
+    )
+    base64_html = base64.b64encode(html.encode()).decode()
+    pdf_result = pdf_utils.save_pdf_from_html(base64_html)
+    assert pdf_result["success"] is True
+
+    result = pdf_utils.convert_pdf_file_to_pngs(pdf_result["file_path"])
+
+    assert result["success"] is True
+    assert result["page_count"] >= 2
+    assert len(result["file_paths"]) == result["page_count"]
+    for fp in result["file_paths"]:
+        assert pathlib.Path(fp).exists()
+        with Image.open(fp) as image:
+            assert image.format == "PNG"
+
+
+def test_convert_pdf_file_to_pngs_file_not_found() -> None:
+    result = pdf_utils.convert_pdf_file_to_pngs("/nonexistent/path/doc.pdf")
+    assert result["success"] is False
+    assert "not found" in result["error"].lower()
+    assert result["file_paths"] == []
+    assert result["page_count"] == 0
+
+
+def test_convert_pdf_file_to_pngs_empty_path() -> None:
+    result = pdf_utils.convert_pdf_file_to_pngs("")
+    assert result["success"] is False
+    assert result["error"] is not None
+    assert result["file_paths"] == []
+
+
+def test_convert_pdf_file_to_pngs_any_directory(tmp_path, monkeypatch) -> None:
+    """Verify input can come from any directory."""
+    monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: str(tmp_path / "out"))
+    (tmp_path / "out").mkdir()
+
+    html = "<html><body><p>Any dir</p></body></html>"
+    base64_html = base64.b64encode(html.encode()).decode()
+    pdf_res = pdf_utils.from_html(base64_html)
+    assert "base64_pdf" in pdf_res
+
+    input_dir = tmp_path / "mounted"
+    input_dir.mkdir()
+    pdf_file = input_dir / "doc.pdf"
+    pdf_file.write_bytes(base64.b64decode(pdf_res["base64_pdf"]))
+
+    result = pdf_utils.convert_pdf_file_to_pngs(str(pdf_file))
+
+    assert result["success"] is True
+    assert result["page_count"] >= 1
+    for fp in result["file_paths"]:
+        assert fp.startswith(str(tmp_path / "out"))
+
+
 # Tests for _validate_input_file helper
 
 

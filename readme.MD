@@ -60,7 +60,8 @@ Read from **any mounted directory** and save the converted result to `/tmp/ezpy_
 - `convert_html_file_to_pdf(file_path)` → reads HTML, saves PDF
 - `convert_png_file_to_pdf(file_path)` → reads PNG, saves PDF
 - `convert_pdf_file_to_html(file_path)` → reads PDF, saves HTML
-- `convert_pdf_file_to_png(file_path, page_number=1)` → reads PDF, saves PNG
+- `convert_pdf_file_to_png(file_path, page_number=1)` → reads PDF, saves single page as PNG
+- `convert_pdf_file_to_pngs(file_path)` → reads PDF, saves all pages as PNGs
 
 ### Docker Volume Mount for PDF Tools
 

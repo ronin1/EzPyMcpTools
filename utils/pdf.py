@@ -711,3 +711,60 @@ def convert_pdf_file_to_png(file_path: str, page_number: int = 1) -> dict[str, A
         return save_png_from_pdf(base64_pdf, page_number=page_number)
     except Exception as exc:
         return {"success": False, "error": f"Failed to process file: {exc!s}", "file_path": None}
+
+
+def convert_pdf_file_to_pngs(file_path: str) -> dict[str, Any]:
+    """Read a PDF file and convert all pages to PNG files saved in /tmp.
+
+    Accepts any readable file path. One PNG per page is written to
+    /tmp/ezpy_tools/pdf/{uuid}_p{N}.png.
+
+    Args:
+        file_path: Absolute path to the PDF file.
+
+    Returns:
+        Dict with ``success``, ``file_paths`` (list of output paths),
+        ``page_count``, and ``error``.
+    """
+    error = _validate_input_file(file_path)
+    if error is not None:
+        return {"success": False, "error": error["error"], "file_paths": [], "page_count": 0}
+
+    try:
+        resolved = Path(file_path).resolve()
+        with open(resolved, "rb") as f:
+            pdf_bytes = f.read()
+
+        page_pngs = _pdf_bytes_to_all_png_bytes(pdf_bytes)
+        if not page_pngs:
+            return {
+                "success": False,
+                "error": "Failed to render PDF pages",
+                "file_paths": [],
+                "page_count": 0,
+            }
+
+        temp_dir = _get_temp_dir()
+        batch_id = uuid.uuid4()
+        file_paths: list[str] = []
+
+        for page_num, png_bytes in enumerate(page_pngs, start=1):
+            file_name = f"{batch_id}_p{page_num}.png"
+            out_path = os.path.join(temp_dir, file_name)
+            with open(out_path, "wb") as f:
+                f.write(png_bytes)
+            file_paths.append(out_path)
+
+        return {
+            "success": True,
+            "file_paths": file_paths,
+            "page_count": len(file_paths),
+            "error": None,
+        }
+    except Exception as exc:
+        return {
+            "success": False,
+            "error": f"Failed to process file: {exc!s}",
+            "file_paths": [],
+            "page_count": 0,
+        }
