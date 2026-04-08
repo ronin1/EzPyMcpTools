@@ -16,6 +16,21 @@ from pypdf import PdfReader
 OCR_TEXT_MIN_LENGTH = 32
 _OCR_RENDER_SCALE = 3
 _OCR_CONFIG = "--psm 6 -c preserve_interword_spaces=1"
+_DENIED_PATH_PREFIXES: tuple[Path, ...] = (
+    Path("/bin"),
+    Path("/boot"),
+    Path("/dev"),
+    Path("/etc"),
+    Path("/lib"),
+    Path("/lib64"),
+    Path("/proc"),
+    Path("/root"),
+    Path("/run"),
+    Path("/sbin"),
+    Path("/sys"),
+    Path("/usr"),
+    Path("/Users/root"),
+)
 
 
 def words_count(text: str) -> dict[str, Any]:
@@ -257,7 +272,7 @@ def extract_from_pdf_base64(base64_pdf: str) -> dict[str, Any]:
 def extract_from_pdf_file(file_path: str) -> dict[str, Any]:
     """Extract text from a PDF file at the given path.
 
-    Accepts any readable file path (e.g. mounted volumes, local files).
+    Reads from any non-system path (e.g. /data, /tmp/ezpy_tools, mounted volumes).
 
     Args:
         file_path: Absolute path to the PDF file.
@@ -315,7 +330,7 @@ def extract_from_image_base64(base64_image: str) -> dict[str, Any]:
 def extract_from_image_file(file_path: str) -> dict[str, Any]:
     """Extract text from an image file at the given path using OCR.
 
-    Accepts any readable file path (e.g. mounted volumes, local files).
+    Reads from any non-system path (e.g. /data, /tmp/ezpy_tools, mounted volumes).
     Supports all image formats supported by Pillow: PNG, JPEG, GIF, BMP,
     TIFF, WebP, ICO, PPM, PGM, PBM, etc.
 
@@ -341,8 +356,21 @@ def extract_from_image_file(file_path: str) -> dict[str, Any]:
         return {"error": f"An error occurred during extraction: {exc!s}", "text": None}
 
 
+def _is_path_denied(resolved_path: Path) -> bool:
+    """Check whether a resolved path falls under a denied system prefix."""
+    for prefix in _DENIED_PATH_PREFIXES:
+        try:
+            resolved_path.relative_to(prefix.resolve())
+            return True
+        except ValueError:
+            continue
+    return False
+
+
 def _validate_input_file(file_path: str) -> dict[str, Any] | None:
-    """Validate that a file path points to a readable file.
+    """Validate that a file path is not under a protected system directory and is readable.
+
+    Blocks access to critical Linux system directories (e.g. /etc, /usr, /proc).
 
     Args:
         file_path: The file path to validate.
@@ -357,10 +385,17 @@ def _validate_input_file(file_path: str) -> dict[str, Any] | None:
 
     try:
         resolved = Path(file_path).resolve()
-        if not resolved.exists():
-            return {"error": f"File not found: {file_path}", "text": None}
-        if not resolved.is_file():
-            return {"error": f"Path is not a file: {file_path}", "text": None}
-        return None
     except Exception as exc:
         return {"error": f"Invalid file path: {exc!s}", "text": None}
+
+    if _is_path_denied(resolved):
+        return {
+            "error": "Access denied: cannot access files under protected system directories",
+            "text": None,
+        }
+
+    if not resolved.exists():
+        return {"error": f"File not found: {file_path}", "text": None}
+    if not resolved.is_file():
+        return {"error": f"Path is not a file: {file_path}", "text": None}
+    return None

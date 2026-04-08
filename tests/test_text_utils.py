@@ -217,25 +217,15 @@ def test_extract_from_image_file_success(tmp_path) -> None:
         assert result["text"] is None
 
 
-def test_extract_from_image_file_any_directory(tmp_path) -> None:
-    """Verify input can come from any directory, not just /tmp."""
-    custom_dir = tmp_path / "mounted_volume" / "images"
-    custom_dir.mkdir(parents=True)
-
-    image_bytes, _fmt = _create_image_with_text("ANY DIR")
-    image_file = custom_dir / "photo.png"
-    image_file.write_bytes(image_bytes)
-
-    result = text_utils.extract_from_image_file(str(image_file))
-
-    if "error" not in result:
-        assert "text" in result
-    else:
-        assert result["text"] is None
+def test_extract_from_image_file_access_denied() -> None:
+    result = text_utils.extract_from_image_file("/etc/shadow")
+    assert result["error"] is not None
+    assert "access denied" in result["error"].lower()
+    assert result["text"] is None
 
 
 def test_extract_from_image_file_file_not_found() -> None:
-    result = text_utils.extract_from_image_file("/nonexistent/path/image.png")
+    result = text_utils.extract_from_image_file("/data/nonexistent.png")
     assert result["error"] is not None
     assert "not found" in result["error"].lower()
     assert result["text"] is None
@@ -300,9 +290,16 @@ def test_extract_from_pdf_file_success(tmp_path, monkeypatch) -> None:
 
 
 def test_extract_from_pdf_file_file_not_found() -> None:
-    result = text_utils.extract_from_pdf_file("/nonexistent/path/doc.pdf")
+    result = text_utils.extract_from_pdf_file("/data/nonexistent.pdf")
     assert result["error"] is not None
     assert "not found" in result["error"].lower()
+    assert result["text"] is None
+
+
+def test_extract_from_pdf_file_access_denied() -> None:
+    result = text_utils.extract_from_pdf_file("/usr/bin/python3")
+    assert result["error"] is not None
+    assert "access denied" in result["error"].lower()
     assert result["text"] is None
 
 
@@ -387,17 +384,8 @@ def test_validate_input_file_existing_file(tmp_path) -> None:
     assert text_utils._validate_input_file(str(test_file)) is None
 
 
-def test_validate_input_file_any_path(tmp_path) -> None:
-    """Any readable file should be accepted regardless of directory."""
-    nested = tmp_path / "deep" / "nested" / "dir"
-    nested.mkdir(parents=True)
-    test_file = nested / "data.bin"
-    test_file.write_bytes(b"\x00\x01\x02")
-    assert text_utils._validate_input_file(str(test_file)) is None
-
-
 def test_validate_input_file_nonexistent() -> None:
-    result = text_utils._validate_input_file("/nonexistent/path/file.txt")
+    result = text_utils._validate_input_file("/data/nonexistent.txt")
     assert result is not None
     assert "not found" in result["error"].lower()
 
@@ -418,3 +406,15 @@ def test_validate_input_file_empty() -> None:
     result = text_utils._validate_input_file("")
     assert result is not None
     assert "cannot be empty" in result["error"].lower()
+
+
+def test_validate_input_file_access_denied() -> None:
+    result = text_utils._validate_input_file("/etc/passwd")
+    assert result is not None
+    assert "access denied" in result["error"].lower()
+
+
+def test_validate_input_file_path_traversal() -> None:
+    result = text_utils._validate_input_file("/data/../etc/passwd")
+    assert result is not None
+    assert "access denied" in result["error"].lower()

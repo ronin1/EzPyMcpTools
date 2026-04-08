@@ -56,7 +56,7 @@ Take base64-encoded input and save the converted result to `/tmp/ezpy_tools/pdf/
 - `save_png_from_pdf(base64_pdf, page_number=1)` → `/tmp/ezpy_tools/pdf/{uuid}.png`
 
 ### `convert_*()` - File Input → File Output
-Read from **any mounted directory** and save the converted result to `/tmp/ezpy_tools/pdf/`:
+Read from any non-system path (e.g. `/data`, `/tmp/ezpy_tools/`, mounted volumes) and save the converted result to `/tmp/ezpy_tools/pdf/`. Critical Linux system directories (`/etc`, `/usr`, `/proc`, etc.) are blocked:
 - `convert_html_file_to_pdf(file_path)` → reads HTML, saves PDF
 - `convert_png_file_to_pdf(file_path)` → reads PNG, saves PDF
 - `convert_pdf_file_to_html(file_path)` → reads PDF, saves HTML
@@ -65,12 +65,12 @@ Read from **any mounted directory** and save the converted result to `/tmp/ezpy_
 
 ### Docker Volume Mount for PDF Tools
 
-Mount both the input directory and the output temp directory:
+Mount input files to `/data` and share the output temp directory:
 
 ```bash
 docker run --rm -i \
   -v "$PWD/user.data.json:/app/user.data.json:ro" \
-  -v "/path/to/input/files:/mnt/input:ro" \
+  -v "/path/to/input/files:/data:ro" \
   -v "/tmp/ezpy_tools:/tmp/ezpy_tools" \
   ezpy-tools
 ```
@@ -88,6 +88,8 @@ docker run --rm -i \
         "-i",
         "-v",
         "/absolute/path/to/tools/user.data.json:/app/user.data.json:ro",
+        "-v",
+        "/path/to/input/files:/data:ro",
         "-v",
         "/tmp/ezpy_tools:/tmp/ezpy_tools",
         "ezpy-tools"
@@ -107,22 +109,22 @@ The text utilities now include powerful text extraction capabilities from PDFs a
 
 ### PDF Text Extraction
 - `extract_from_pdf_base64(base64_pdf)` - Extract text from base64-encoded PDF (uses embedded text first, falls back to OCR)
-- `extract_from_pdf_file(file_path)` - Extract text from PDF file at any readable path
+- `extract_from_pdf_file(file_path)` - Extract text from PDF file at any non-system path
 
 ### Image Text Extraction (OCR)
 - `extract_from_image_base64(base64_image)` - Extract text from base64-encoded image using OCR
-- `extract_from_image_file(file_path)` - Extract text from image file at any readable path
+- `extract_from_image_file(file_path)` - Extract text from image file at any non-system path
 
 **Supported Image Formats:** PNG, JPEG, GIF, BMP, TIFF, WebP, ICO, PPM, PGM, PBM, and all formats supported by Pillow
 
 ### Docker Configuration for Text Extraction
 
-When using text extraction with file paths, mount the input directory and output temp directory:
+Mount input files to `/data` and share the output temp directory:
 
 ```bash
 docker run --rm -i \
   -v "$PWD/user.data.json:/app/user.data.json:ro" \
-  -v "/path/to/input/files:/mnt/input:ro" \
+  -v "/path/to/input/files:/data:ro" \
   -v "/tmp/ezpy_tools:/tmp/ezpy_tools" \
   ezpy-tools
 ```

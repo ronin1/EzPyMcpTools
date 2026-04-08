@@ -373,25 +373,15 @@ def test_convert_html_file_to_pdf_success(tmp_path, monkeypatch) -> None:
         assert f.read().startswith(b"%PDF")
 
 
-def test_convert_html_file_to_pdf_any_directory(tmp_path, monkeypatch) -> None:
-    """Verify input can come from any directory, not just /tmp."""
-    monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: str(tmp_path / "output"))
-    (tmp_path / "output").mkdir()
-
-    html_content = "<html><body><p>Any dir</p></body></html>"
-    input_dir = tmp_path / "custom_mount"
-    input_dir.mkdir()
-    html_file = input_dir / "page.html"
-    html_file.write_text(html_content, encoding="utf-8")
-
-    result = pdf_utils.convert_html_file_to_pdf(str(html_file))
-
-    assert result["success"] is True
-    assert result["file_path"].startswith(str(tmp_path / "output"))
+def test_convert_html_file_to_pdf_access_denied() -> None:
+    result = pdf_utils.convert_html_file_to_pdf("/etc/passwd")
+    assert result["success"] is False
+    assert "access denied" in result["error"].lower()
+    assert result["file_path"] is None
 
 
 def test_convert_html_file_to_pdf_file_not_found() -> None:
-    result = pdf_utils.convert_html_file_to_pdf("/nonexistent/path/file.html")
+    result = pdf_utils.convert_html_file_to_pdf("/data/nonexistent.html")
     assert result["success"] is False
     assert "not found" in result["error"].lower()
     assert result["file_path"] is None
@@ -430,9 +420,16 @@ def test_convert_png_file_to_pdf_success(tmp_path, monkeypatch) -> None:
 
 
 def test_convert_png_file_to_pdf_file_not_found() -> None:
-    result = pdf_utils.convert_png_file_to_pdf("/nonexistent/path/image.png")
+    result = pdf_utils.convert_png_file_to_pdf("/data/nonexistent.png")
     assert result["success"] is False
     assert "not found" in result["error"].lower()
+    assert result["file_path"] is None
+
+
+def test_convert_png_file_to_pdf_access_denied() -> None:
+    result = pdf_utils.convert_png_file_to_pdf("/usr/lib/image.png")
+    assert result["success"] is False
+    assert "access denied" in result["error"].lower()
     assert result["file_path"] is None
 
 
@@ -455,7 +452,7 @@ def test_convert_pdf_file_to_html_success(tmp_path, monkeypatch) -> None:
 
 
 def test_convert_pdf_file_to_html_file_not_found() -> None:
-    result = pdf_utils.convert_pdf_file_to_html("/nonexistent/path/doc.pdf")
+    result = pdf_utils.convert_pdf_file_to_html("/data/nonexistent.pdf")
     assert result["success"] is False
     assert "not found" in result["error"].lower()
     assert result["file_path"] is None
@@ -481,7 +478,7 @@ def test_convert_pdf_file_to_png_success(tmp_path, monkeypatch) -> None:
 
 
 def test_convert_pdf_file_to_png_file_not_found() -> None:
-    result = pdf_utils.convert_pdf_file_to_png("/nonexistent/path/doc.pdf")
+    result = pdf_utils.convert_pdf_file_to_png("/data/nonexistent.pdf")
     assert result["success"] is False
     assert "not found" in result["error"].lower()
     assert result["file_path"] is None
@@ -548,7 +545,7 @@ def test_convert_pdf_file_to_pngs_multipage(tmp_path, monkeypatch) -> None:
 
 
 def test_convert_pdf_file_to_pngs_file_not_found() -> None:
-    result = pdf_utils.convert_pdf_file_to_pngs("/nonexistent/path/doc.pdf")
+    result = pdf_utils.convert_pdf_file_to_pngs("/data/nonexistent.pdf")
     assert result["success"] is False
     assert "not found" in result["error"].lower()
     assert result["file_paths"] == []
@@ -562,27 +559,12 @@ def test_convert_pdf_file_to_pngs_empty_path() -> None:
     assert result["file_paths"] == []
 
 
-def test_convert_pdf_file_to_pngs_any_directory(tmp_path, monkeypatch) -> None:
-    """Verify input can come from any directory."""
-    monkeypatch.setattr(pdf_utils, "_get_temp_dir", lambda: str(tmp_path / "out"))
-    (tmp_path / "out").mkdir()
-
-    html = "<html><body><p>Any dir</p></body></html>"
-    base64_html = base64.b64encode(html.encode()).decode()
-    pdf_res = pdf_utils.from_html(base64_html)
-    assert "base64_pdf" in pdf_res
-
-    input_dir = tmp_path / "mounted"
-    input_dir.mkdir()
-    pdf_file = input_dir / "doc.pdf"
-    pdf_file.write_bytes(base64.b64decode(pdf_res["base64_pdf"]))
-
-    result = pdf_utils.convert_pdf_file_to_pngs(str(pdf_file))
-
-    assert result["success"] is True
-    assert result["page_count"] >= 1
-    for fp in result["file_paths"]:
-        assert fp.startswith(str(tmp_path / "out"))
+def test_convert_pdf_file_to_pngs_access_denied() -> None:
+    result = pdf_utils.convert_pdf_file_to_pngs("/proc/self/environ")
+    assert result["success"] is False
+    assert "access denied" in result["error"].lower()
+    assert result["file_paths"] == []
+    assert result["page_count"] == 0
 
 
 # Tests for _validate_input_file helper
@@ -595,7 +577,7 @@ def test_validate_input_file_existing_file(tmp_path) -> None:
 
 
 def test_validate_input_file_nonexistent() -> None:
-    result = pdf_utils._validate_input_file("/nonexistent/path/file.txt")
+    result = pdf_utils._validate_input_file("/data/nonexistent.txt")
     assert result is not None
     assert "not found" in result["error"].lower()
 
@@ -616,3 +598,15 @@ def test_validate_input_file_empty() -> None:
     result = pdf_utils._validate_input_file("")
     assert result is not None
     assert "cannot be empty" in result["error"].lower()
+
+
+def test_validate_input_file_access_denied() -> None:
+    result = pdf_utils._validate_input_file("/etc/passwd")
+    assert result is not None
+    assert "access denied" in result["error"].lower()
+
+
+def test_validate_input_file_path_traversal() -> None:
+    result = pdf_utils._validate_input_file("/data/../etc/passwd")
+    assert result is not None
+    assert "access denied" in result["error"].lower()

@@ -22,6 +22,21 @@ SOURCE_HTML_METADATA_KEY = "/EzPySourceHTML"
 OCR_TEXT_MIN_LENGTH = 32
 _OCR_RENDER_SCALE = 3
 _OCR_CONFIG = "--psm 6 -c preserve_interword_spaces=1"
+_DENIED_PATH_PREFIXES: tuple[Path, ...] = (
+    Path("/bin"),
+    Path("/boot"),
+    Path("/dev"),
+    Path("/etc"),
+    Path("/lib"),
+    Path("/lib64"),
+    Path("/proc"),
+    Path("/root"),
+    Path("/run"),
+    Path("/sbin"),
+    Path("/sys"),
+    Path("/usr"),
+    Path("/Users/root"),
+)
 
 
 def _get_temp_dir() -> str:
@@ -31,8 +46,21 @@ def _get_temp_dir() -> str:
     return temp_dir
 
 
+def _is_path_denied(resolved_path: Path) -> bool:
+    """Check whether a resolved path falls under a denied system prefix."""
+    for prefix in _DENIED_PATH_PREFIXES:
+        try:
+            resolved_path.relative_to(prefix.resolve())
+            return True
+        except ValueError:
+            continue
+    return False
+
+
 def _validate_input_file(file_path: str) -> dict[str, Any] | None:
-    """Validate that a file path points to a readable file.
+    """Validate that a file path is not under a protected system directory and is readable.
+
+    Blocks access to critical Linux system directories (e.g. /etc, /usr, /proc).
 
     Args:
         file_path: The file path to validate.
@@ -47,21 +75,29 @@ def _validate_input_file(file_path: str) -> dict[str, Any] | None:
 
     try:
         resolved = Path(file_path).resolve()
-        if not resolved.exists():
-            return {
-                "success": False,
-                "error": f"File not found: {file_path}",
-                "file_path": None,
-            }
-        if not resolved.is_file():
-            return {
-                "success": False,
-                "error": f"Path is not a file: {file_path}",
-                "file_path": None,
-            }
-        return None
     except Exception as exc:
         return {"success": False, "error": f"Invalid file path: {exc!s}", "file_path": None}
+
+    if _is_path_denied(resolved):
+        return {
+            "success": False,
+            "error": "Access denied: cannot access files under protected system directories",
+            "file_path": None,
+        }
+
+    if not resolved.exists():
+        return {
+            "success": False,
+            "error": f"File not found: {file_path}",
+            "file_path": None,
+        }
+    if not resolved.is_file():
+        return {
+            "success": False,
+            "error": f"Path is not a file: {file_path}",
+            "file_path": None,
+        }
+    return None
 
 
 def _strip_js_from_html(html_content: str) -> str:
@@ -611,7 +647,7 @@ def save_png_from_pdf(base64_pdf: str, page_number: int = 1) -> dict[str, Any]:
 def convert_html_file_to_pdf(file_path: str) -> dict[str, Any]:
     """Read an HTML file and convert it to a PDF file saved in /tmp.
 
-    Accepts any readable file path. Output is written to /tmp/ezpy_tools/pdf/.
+    Reads from any non-system path. Output is written to /tmp/ezpy_tools/pdf/.
 
     Args:
         file_path: Absolute path to the HTML file.
@@ -637,7 +673,7 @@ def convert_html_file_to_pdf(file_path: str) -> dict[str, Any]:
 def convert_png_file_to_pdf(file_path: str) -> dict[str, Any]:
     """Read a PNG file and convert it to a PDF file saved in /tmp.
 
-    Accepts any readable file path. Output is written to /tmp/ezpy_tools/pdf/.
+    Reads from any non-system path. Output is written to /tmp/ezpy_tools/pdf/.
 
     Args:
         file_path: Absolute path to the PNG file.
@@ -663,7 +699,7 @@ def convert_png_file_to_pdf(file_path: str) -> dict[str, Any]:
 def convert_pdf_file_to_html(file_path: str) -> dict[str, Any]:
     """Read a PDF file and convert it to an HTML file saved in /tmp.
 
-    Accepts any readable file path. Output is written to /tmp/ezpy_tools/pdf/.
+    Reads from any non-system path. Output is written to /tmp/ezpy_tools/pdf/.
 
     Args:
         file_path: Absolute path to the PDF file.
@@ -689,7 +725,7 @@ def convert_pdf_file_to_html(file_path: str) -> dict[str, Any]:
 def convert_pdf_file_to_png(file_path: str, page_number: int = 1) -> dict[str, Any]:
     """Read a PDF file and convert a page to a PNG file saved in /tmp.
 
-    Accepts any readable file path. Output is written to /tmp/ezpy_tools/pdf/.
+    Reads from any non-system path. Output is written to /tmp/ezpy_tools/pdf/.
 
     Args:
         file_path: Absolute path to the PDF file.
@@ -716,7 +752,7 @@ def convert_pdf_file_to_png(file_path: str, page_number: int = 1) -> dict[str, A
 def convert_pdf_file_to_pngs(file_path: str) -> dict[str, Any]:
     """Read a PDF file and convert all pages to PNG files saved in /tmp.
 
-    Accepts any readable file path. One PNG per page is written to
+    Reads from any non-system path. One PNG per page is written to
     /tmp/ezpy_tools/pdf/{uuid}_p{N}.png.
 
     Args:
