@@ -234,32 +234,24 @@ def extract_from_pdf_base64(base64_pdf: str) -> dict[str, Any]:
         return {"error": f"An error occurred during extraction: {exc!s}", "text": None}
 
 
-def extract_from_pdf_path(file_path: str) -> dict[str, Any]:
+def extract_from_pdf_file(file_path: str) -> dict[str, Any]:
     """Extract text from a PDF file at the given path.
 
-    Designed for use with mounted volumes at /tmp/ezpy_tools/pdf/.
-    Path is validated to ensure it's within permitted directories.
+    Accepts any readable file path (e.g. mounted volumes, local files).
 
     Args:
         file_path: Absolute path to the PDF file.
 
     Returns:
-        Dict with extracted `text` or `error` message.
+        Dict with extracted ``text`` or ``error`` message.
     """
-    # Validate path is within permitted directories
-    is_valid, error_msg, resolved_path = _validate_temp_path(file_path)
-    if not is_valid:
-        return {"error": error_msg, "text": None}
-
-    if resolved_path is None:
-        return {"error": "Internal validation error", "text": None}
-    if not resolved_path.exists():
-        return {"error": f"File not found: {file_path}", "text": None}
-    if not resolved_path.is_file():
-        return {"error": f"Path is not a file: {file_path}", "text": None}
+    error = _validate_input_file(file_path)
+    if error is not None:
+        return error
 
     try:
-        with open(resolved_path, "rb") as f:
+        resolved = Path(file_path).resolve()
+        with open(resolved, "rb") as f:
             pdf_bytes = f.read()
         text = _extract_pdf_text_with_fallback(pdf_bytes)
         if text is None:
@@ -300,35 +292,26 @@ def extract_from_image_base64(base64_image: str) -> dict[str, Any]:
         return {"error": f"An error occurred during extraction: {exc!s}", "text": None}
 
 
-def extract_from_image_path(file_path: str) -> dict[str, Any]:
-    """Extract text from an image file at the given path.
+def extract_from_image_file(file_path: str) -> dict[str, Any]:
+    """Extract text from an image file at the given path using OCR.
 
-    Uses OCR to extract text. Supports all image formats supported by
-    Pillow: PNG, JPEG, GIF, BMP, TIFF, WebP, ICO, PPM, PGM, PBM, etc.
-
-    Designed for use with mounted volumes at /tmp/ezpy_tools/png/ or /tmp/ezpy_tools/pdf/.
-    Path is validated to ensure it's within permitted directories.
+    Accepts any readable file path (e.g. mounted volumes, local files).
+    Supports all image formats supported by Pillow: PNG, JPEG, GIF, BMP,
+    TIFF, WebP, ICO, PPM, PGM, PBM, etc.
 
     Args:
         file_path: Absolute path to the image file.
 
     Returns:
-        Dict with extracted `text` or `error` message.
+        Dict with extracted ``text`` or ``error`` message.
     """
-    # Validate path is within permitted directories
-    is_valid, error_msg, resolved_path = _validate_temp_path(file_path)
-    if not is_valid:
-        return {"error": error_msg, "text": None}
-
-    if resolved_path is None:
-        return {"error": "Failed to resolve path", "text": None}
-    if not resolved_path.exists():
-        return {"error": f"File not found: {file_path}", "text": None}
-    if not resolved_path.is_file():
-        return {"error": f"Path is not a file: {file_path}", "text": None}
+    error = _validate_input_file(file_path)
+    if error is not None:
+        return error
 
     try:
-        with open(resolved_path, "rb") as f:
+        resolved = Path(file_path).resolve()
+        with open(resolved, "rb") as f:
             image_bytes = f.read()
         text = _extract_image_text(image_bytes)
         if text is None:
@@ -338,51 +321,26 @@ def extract_from_image_path(file_path: str) -> dict[str, Any]:
         return {"error": f"An error occurred during extraction: {exc!s}", "text": None}
 
 
-def _validate_temp_path(file_path: str) -> tuple[bool, str | None, Path | None]:
-    """Validate that a file path is within permitted /tmp/* directories.
-
-    This prevents directory traversal attacks by ensuring the resolved
-    path is within one of the allowed temporary directories.
+def _validate_input_file(file_path: str) -> dict[str, Any] | None:
+    """Validate that a file path points to a readable file.
 
     Args:
         file_path: The file path to validate.
 
     Returns:
-        Tuple of (is_valid, error_message, resolved_path). is_valid is True if the path
-        is within permitted directories, False otherwise. resolved_path is the validated
-        Path object if valid, None otherwise.
+        Error dict if invalid, None if the path is a readable file.
     """
     if not isinstance(file_path, str):
-        return False, "Input must be a file path string", None
+        return {"error": "Input must be a file path string", "text": None}
     if not file_path:
-        return False, "File path cannot be empty", None
+        return {"error": "File path cannot be empty", "text": None}
 
     try:
-        # Resolve the path to handle symlinks, .., ., etc.
-        path = Path(file_path).resolve()
-
-        # Define permitted directories (must be absolute paths)
-        permitted_prefixes = (
-            Path("/tmp/ezpy_tools/pdf").resolve(),
-            Path("/tmp/ezpy_tools/png").resolve(),
-            Path("/tmp/ezpy_tools/text").resolve(),
-        )
-
-        # Check if the resolved path is within any permitted directory
-        for prefix in permitted_prefixes:
-            try:
-                # Check if path is the prefix itself or within it
-                path.relative_to(prefix)
-                return True, None, path
-            except ValueError:
-                # path is not relative to this prefix, try next
-                continue
-
-        # Path is not within any permitted directory
-        return (
-            False,
-            f"Access denied: Path '{file_path}' is not within permitted /tmp/* directories",
-            None,
-        )
+        resolved = Path(file_path).resolve()
+        if not resolved.exists():
+            return {"error": f"File not found: {file_path}", "text": None}
+        if not resolved.is_file():
+            return {"error": f"Path is not a file: {file_path}", "text": None}
+        return None
     except Exception as exc:
-        return False, f"Invalid file path: {exc!s}", None
+        return {"error": f"Invalid file path: {exc!s}", "text": None}

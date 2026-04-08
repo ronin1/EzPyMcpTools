@@ -29,54 +29,37 @@ def _get_temp_dir() -> str:
     return temp_dir
 
 
-def _validate_temp_path(file_path: str) -> tuple[bool, str | None, Path | None]:
-    """Validate that a file path is within permitted /tmp/* directories.
-
-    This prevents directory traversal attacks by ensuring the resolved
-    path is within one of the allowed temporary directories.
+def _validate_input_file(file_path: str) -> dict[str, Any] | None:
+    """Validate that a file path points to a readable file.
 
     Args:
         file_path: The file path to validate.
 
     Returns:
-        Tuple of (is_valid, error_message, resolved_path). is_valid is True if the path
-        is within permitted directories, False otherwise. resolved_path is the validated
-        Path object if valid, None otherwise.
+        Error dict if invalid, None if the path is a readable file.
     """
     if not isinstance(file_path, str):
-        return False, "Input must be a file path string", None
+        return {"success": False, "error": "Input must be a file path string", "file_path": None}
     if not file_path:
-        return False, "File path cannot be empty", None
+        return {"success": False, "error": "File path cannot be empty", "file_path": None}
 
     try:
-        # Resolve the path to handle symlinks, .., ., etc.
-        path = Path(file_path).resolve()
-
-        # Define permitted directories (must be absolute paths)
-        permitted_prefixes = (
-            Path("/tmp/ezpy_tools/pdf").resolve(),
-            Path("/tmp/ezpy_tools/png").resolve(),
-            Path("/tmp/ezpy_tools/text").resolve(),
-        )
-
-        # Check if the resolved path is within any permitted directory
-        for prefix in permitted_prefixes:
-            try:
-                # Check if path is the prefix itself or within it
-                path.relative_to(prefix)
-                return True, None, path
-            except ValueError:
-                # path is not relative to this prefix, try next
-                continue
-
-        # Path is not within any permitted directory
-        return (
-            False,
-            f"Access denied: Path '{file_path}' is not within permitted /tmp/* directories",
-            None,
-        )
+        resolved = Path(file_path).resolve()
+        if not resolved.exists():
+            return {
+                "success": False,
+                "error": f"File not found: {file_path}",
+                "file_path": None,
+            }
+        if not resolved.is_file():
+            return {
+                "success": False,
+                "error": f"Path is not a file: {file_path}",
+                "file_path": None,
+            }
+        return None
     except Exception as exc:
-        return False, f"Invalid file path: {exc!s}", None
+        return {"success": False, "error": f"Invalid file path: {exc!s}", "file_path": None}
 
 
 def _strip_js_from_html(html_content: str) -> str:
@@ -482,17 +465,16 @@ def to_png(base64_pdf: str, page_number: int = 1) -> dict[str, Any]:
         return {"error": "An error occurred during conversion"}
 
 
-def from_html_save_to_file(base64_html: str) -> dict[str, Any]:
-    """Convert base64 encoded HTML content to a PDF file.
+def save_pdf_from_html(base64_html: str) -> dict[str, Any]:
+    """Convert base64 encoded HTML content to a PDF file saved in /tmp.
 
     Note: Uses WeasyPrint for proper HTML/CSS rendering. JavaScript is stripped.
-    Saves the PDF to /tmp/ezpy_tools/pdf/{uuid}.pdf for shared access.
 
     Args:
         base64_html: Base64 encoded string of the HTML content.
 
     Returns:
-        Dict containing the absolute file path and processing status.
+        Dict with ``success``, ``file_path``, and ``error``.
     """
     result = from_html(base64_html)
 
@@ -513,16 +495,14 @@ def from_html_save_to_file(base64_html: str) -> dict[str, Any]:
         return {"success": False, "error": f"Failed to save file: {exc!s}", "file_path": None}
 
 
-def from_png_save_to_file(base64_png: str) -> dict[str, Any]:
-    """Convert base64 encoded PNG content to a PDF file.
-
-    Saves the PDF to /tmp/ezpy_tools/pdf/{uuid}.pdf for shared access.
+def save_pdf_from_png(base64_png: str) -> dict[str, Any]:
+    """Convert base64 encoded PNG content to a PDF file saved in /tmp.
 
     Args:
         base64_png: Base64 encoded string of the PNG content.
 
     Returns:
-        Dict containing the absolute file path and processing status.
+        Dict with ``success``, ``file_path``, and ``error``.
     """
     result = from_png(base64_png)
 
@@ -543,16 +523,14 @@ def from_png_save_to_file(base64_png: str) -> dict[str, Any]:
         return {"success": False, "error": f"Failed to save file: {exc!s}", "file_path": None}
 
 
-def to_html_save_to_file(base64_pdf: str) -> dict[str, Any]:
-    """Convert base64 encoded PDF content to an HTML file.
-
-    Saves the HTML to /tmp/ezpy_tools/pdf/{uuid}.html for shared access.
+def save_html_from_pdf(base64_pdf: str) -> dict[str, Any]:
+    """Convert base64 encoded PDF content to an HTML file saved in /tmp.
 
     Args:
         base64_pdf: Base64 encoded string of the PDF content.
 
     Returns:
-        Dict containing the absolute file path and processing status.
+        Dict with ``success``, ``file_path``, and ``error``.
     """
     result = to_html(base64_pdf)
 
@@ -573,17 +551,15 @@ def to_html_save_to_file(base64_pdf: str) -> dict[str, Any]:
         return {"success": False, "error": f"Failed to save file: {exc!s}", "file_path": None}
 
 
-def to_png_save_to_file(base64_pdf: str, page_number: int = 1) -> dict[str, Any]:
-    """Convert base64 encoded PDF content to a PNG file.
-
-    Saves the PNG to /tmp/ezpy_tools/pdf/{uuid}.png for shared access.
+def save_png_from_pdf(base64_pdf: str, page_number: int = 1) -> dict[str, Any]:
+    """Convert base64 encoded PDF content to a PNG file saved in /tmp.
 
     Args:
         base64_pdf: Base64 encoded string of the PDF content.
         page_number: One-based PDF page number to render.
 
     Returns:
-        Dict containing the absolute file path and processing status.
+        Dict with ``success``, ``file_path``, and ``error``.
     """
     result = to_png(base64_pdf, page_number=page_number)
 
@@ -604,127 +580,106 @@ def to_png_save_to_file(base64_pdf: str, page_number: int = 1) -> dict[str, Any]
         return {"success": False, "error": f"Failed to save file: {exc!s}", "file_path": None}
 
 
-def from_html_from_tmp_to_tmp_dir(file_path: str) -> dict[str, Any]:
-    """Convert HTML file from tmp directory to a PDF file in tmp directory.
+def convert_html_file_to_pdf(file_path: str) -> dict[str, Any]:
+    """Read an HTML file and convert it to a PDF file saved in /tmp.
 
-    Reads HTML from /tmp/ezpy_tools/pdf/{file}, converts to PDF using WeasyPrint,
-    and saves the result to /tmp/ezpy_tools/pdf/{uuid}.pdf.
-    Path is validated to ensure it's within permitted directories.
+    Accepts any readable file path. Output is written to /tmp/ezpy_tools/pdf/.
 
     Args:
-        file_path: Absolute path to the HTML file (typically in /tmp/ezpy_tools/pdf/)."""
-    # Validate path is within permitted directories
-    is_valid, error_msg, resolved_path = _validate_temp_path(file_path)
-    if not is_valid:
-        return {"success": False, "error": error_msg, "file_path": None}
+        file_path: Absolute path to the HTML file.
 
-    if resolved_path is None:
-        return {"success": False, "error": "Internal validation error", "file_path": None}
-    if not resolved_path.exists():
-        return {"success": False, "error": f"File not found: {file_path}", "file_path": None}
-    if not resolved_path.is_file():
-        return {"success": False, "error": f"Path is not a file: {file_path}", "file_path": None}
+    Returns:
+        Dict with ``success``, ``file_path``, and ``error``.
+    """
+    error = _validate_input_file(file_path)
+    if error is not None:
+        return error
 
     try:
-        with open(resolved_path, encoding="utf-8") as f:
+        resolved = Path(file_path).resolve()
+        with open(resolved, encoding="utf-8") as f:
             html_content = f.read()
 
         base64_html = base64.b64encode(html_content.encode("utf-8")).decode("utf-8")
-        return from_html_save_to_file(base64_html)
+        return save_pdf_from_html(base64_html)
     except Exception as exc:
         return {"success": False, "error": f"Failed to process file: {exc!s}", "file_path": None}
 
 
-def from_png_from_tmp_to_tmp_dir(file_path: str) -> dict[str, Any]:
-    """Convert a PNG file from a permitted tmp directory to a PDF in tmp.
+def convert_png_file_to_pdf(file_path: str) -> dict[str, Any]:
+    """Read a PNG file and convert it to a PDF file saved in /tmp.
 
-    Reads a PNG from a validator-permitted path under /tmp/ezpy_tools/*,
-    converts it to PDF, and saves the result to /tmp/ezpy_tools/pdf/{uuid}.pdf.
-    Path is validated to ensure it's within permitted directories.
+    Accepts any readable file path. Output is written to /tmp/ezpy_tools/pdf/.
 
     Args:
-        file_path: Absolute path to the PNG file within a permitted
-            /tmp/ezpy_tools/* directory (for example, /tmp/ezpy_tools/png/)."""
-    # Validate path is within permitted directories
-    is_valid, error_msg, resolved_path = _validate_temp_path(file_path)
-    if not is_valid:
-        return {"success": False, "error": error_msg, "file_path": None}
+        file_path: Absolute path to the PNG file.
 
-    if resolved_path is None:
-        return {"success": False, "error": "Internal validation error", "file_path": None}
-    if not resolved_path.exists():
-        return {"success": False, "error": f"File not found: {file_path}", "file_path": None}
-    if not resolved_path.is_file():
-        return {"success": False, "error": f"Path is not a file: {file_path}", "file_path": None}
+    Returns:
+        Dict with ``success``, ``file_path``, and ``error``.
+    """
+    error = _validate_input_file(file_path)
+    if error is not None:
+        return error
 
     try:
-        with open(resolved_path, "rb") as f:
+        resolved = Path(file_path).resolve()
+        with open(resolved, "rb") as f:
             png_bytes = f.read()
 
         base64_png = base64.b64encode(png_bytes).decode("utf-8")
-        return from_png_save_to_file(base64_png)
+        return save_pdf_from_png(base64_png)
     except Exception as exc:
         return {"success": False, "error": f"Failed to process file: {exc!s}", "file_path": None}
 
 
-def to_html_from_tmp_to_tmp_dir(file_path: str) -> dict[str, Any]:
-    """Convert PDF file from tmp directory to an HTML file in tmp directory.
+def convert_pdf_file_to_html(file_path: str) -> dict[str, Any]:
+    """Read a PDF file and convert it to an HTML file saved in /tmp.
 
-    Reads PDF from /tmp/ezpy_tools/pdf/{file}, converts to HTML, and saves the
-    result to /tmp/ezpy_tools/pdf/{uuid}.html.
-    Path is validated to ensure it's within permitted directories.
+    Accepts any readable file path. Output is written to /tmp/ezpy_tools/pdf/.
 
     Args:
-        file_path: Absolute path to the PDF file (typically in /tmp/ezpy_tools/pdf/)."""
-    # Validate path is within permitted directories
-    is_valid, error_msg, resolved_path = _validate_temp_path(file_path)
-    if not is_valid:
-        return {"success": False, "error": error_msg, "file_path": None}
+        file_path: Absolute path to the PDF file.
 
-    if resolved_path is None:
-        return {"success": False, "error": "Internal validation error", "file_path": None}
-    if not resolved_path.exists():
-        return {"success": False, "error": f"File not found: {file_path}", "file_path": None}
-    if not resolved_path.is_file():
-        return {"success": False, "error": f"Path is not a file: {file_path}", "file_path": None}
+    Returns:
+        Dict with ``success``, ``file_path``, and ``error``.
+    """
+    error = _validate_input_file(file_path)
+    if error is not None:
+        return error
 
     try:
-        with open(resolved_path, "rb") as f:
+        resolved = Path(file_path).resolve()
+        with open(resolved, "rb") as f:
             pdf_bytes = f.read()
 
         base64_pdf = base64.b64encode(pdf_bytes).decode("utf-8")
-        return to_html_save_to_file(base64_pdf)
+        return save_html_from_pdf(base64_pdf)
     except Exception as exc:
         return {"success": False, "error": f"Failed to process file: {exc!s}", "file_path": None}
 
 
-def to_png_from_tmp_to_tmp_dir(file_path: str, page_number: int = 1) -> dict[str, Any]:
-    """Convert PDF file from tmp directory to a PNG file in tmp directory.
+def convert_pdf_file_to_png(file_path: str, page_number: int = 1) -> dict[str, Any]:
+    """Read a PDF file and convert a page to a PNG file saved in /tmp.
 
-    Reads PDF from /tmp/ezpy_tools/pdf/{file}, converts page to PNG, and saves the
-    result to /tmp/ezpy_tools/pdf/{uuid}.png.
-    Path is validated to ensure it's within permitted directories.
+    Accepts any readable file path. Output is written to /tmp/ezpy_tools/pdf/.
 
     Args:
-        file_path: Absolute path to the PDF file (typically in /tmp/ezpy_tools/pdf/).
-        page_number: One-based PDF page number to render."""
-    # Validate path is within permitted directories
-    is_valid, error_msg, resolved_path = _validate_temp_path(file_path)
-    if not is_valid:
-        return {"success": False, "error": error_msg, "file_path": None}
+        file_path: Absolute path to the PDF file.
+        page_number: One-based PDF page number to render.
 
-    if resolved_path is None:
-        return {"success": False, "error": "Internal validation error", "file_path": None}
-    if not resolved_path.exists():
-        return {"success": False, "error": f"File not found: {file_path}", "file_path": None}
-    if not resolved_path.is_file():
-        return {"success": False, "error": f"Path is not a file: {file_path}", "file_path": None}
+    Returns:
+        Dict with ``success``, ``file_path``, and ``error``.
+    """
+    error = _validate_input_file(file_path)
+    if error is not None:
+        return error
 
     try:
-        with open(resolved_path, "rb") as f:
+        resolved = Path(file_path).resolve()
+        with open(resolved, "rb") as f:
             pdf_bytes = f.read()
 
         base64_pdf = base64.b64encode(pdf_bytes).decode("utf-8")
-        return to_png_save_to_file(base64_pdf, page_number=page_number)
+        return save_png_from_pdf(base64_pdf, page_number=page_number)
     except Exception as exc:
         return {"success": False, "error": f"Failed to process file: {exc!s}", "file_path": None}
